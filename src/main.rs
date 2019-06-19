@@ -50,13 +50,15 @@ fn amplify (v: f32, a: f32) -> f32 { v * a }
 fn main() {
   let device = cpal::default_output_device().expect("Failed to get default output device");
   let format = device.default_output_format().expect("Failed to get default output format");
+
   let event_loop = cpal::EventLoop::new();
   let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
+
   event_loop.play_stream(stream_id.clone());
 
   let sample_rate = format.sample_rate.0;
 
-  let mut sine = Wavetable::new(Waves::SQUARE);
+  let mut sine = Wavetable::new(Waves::SINE);
   sine.gen(sample_rate as i32);
 
   event_loop.run(move |_, data| {
