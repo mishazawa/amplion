@@ -1,42 +1,81 @@
 extern crate cpal;
+extern crate rand;
 
 use core::f32::consts::PI;
+use std::clone::{Clone};
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Waves {
+  SIN,
   SINE,
+  SQ,
   SQUARE,
+  SAW,
+  SAWTOOTH,
+  TRI,
+  TRIANGLE,
+  NOISE,
+  NO,
 }
 
 #[derive(Debug)]
 pub struct Wavetable {
   pub wave: Waves,
   pub phase: f32,
-  pub samples: Vec<f32>
+  pub samples: Vec<f32>,
+  pub sample_rate: i32,
 }
 
 impl Wavetable {
-  fn new (wtype: Waves) -> Self {
-    Self { wave: wtype, samples: Vec::new() , phase: 0.0 }
+  fn new (wtype: Waves, sample_rate: i32) -> Self {
+    Self {
+      wave: wtype,
+      samples: Wavetable::gen(wtype, sample_rate),
+      phase: 0.0,
+      sample_rate,
+    }
   }
-
-  pub fn gen (&mut self, sample_rate: i32) {
-    match self.wave {
-      Waves::SINE => {
+  fn gen(wave: Waves, sample_rate: i32) -> Vec<f32> {
+    let mut samples = Vec::new();
+    match wave {
+      Waves::SIN | Waves::SINE => {
         for sample_clock in 0..sample_rate {
-          self.samples.push((sample_clock as f32 * 2.0 * PI / sample_rate as f32).sin());
+          samples.push((sample_clock as f32 * 2.0 * PI / sample_rate as f32).sin());
         }
       },
-      Waves::SQUARE => {
+      Waves::SQ | Waves::SQUARE => {
         for sample_clock in 0..sample_rate {
           if sample_clock < sample_rate / 2 {
-            self.samples.push(0.9);
+            samples.push(0.9);
           } else {
-            self.samples.push(-0.9);
+            samples.push(-0.9);
           }
         }
       },
+      Waves::SAW | Waves::SAWTOOTH => {
+        for sample_clock in 0..sample_rate {
+          samples.push(1.0 - (1.0 / PI * (sample_clock as f32 * 2.0 * PI / sample_rate as f32)));
+        }
+      },
+      Waves::TRI | Waves::TRIANGLE => {
+        for sample_clock in 0..sample_rate {
+          let mut a = (2.0 / PI) * (sample_clock as f32 * 2.0 * PI / sample_rate as f32);
+          if sample_clock < sample_rate / 2 {
+            a = -1.0 + a;
+          } else {
+            a = 3.0 - a;
+          }
+          samples.push(a);
+        }
+      },
+      Waves::NO | Waves::NOISE => {
+        for _ in 0..sample_rate {
+          samples.push(rand::random::<f32>())
+        }
+      }
+      // _ => ()
     };
+    samples
   }
 
   fn next_value (&mut self, freq: f32) -> f32 {
@@ -58,16 +97,17 @@ fn main() {
 
   let sample_rate = format.sample_rate.0;
 
-  let mut sine = Wavetable::new(Waves::SINE);
-  sine.gen(sample_rate as i32);
+  let mut sine = Wavetable::new(Waves::SINE, sample_rate as i32);
+
+  let amp = 0.2;
 
   event_loop.run(move |_, data| {
     match data {
       cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
         for sample in buffer.chunks_mut(format.channels as usize) {
-          let v = sine.next_value(880.0);
+          let v = sine.next_value(440.0);
           for out in sample.iter_mut() {
-            *out = amplify(v, 0.0125);
+            *out = amplify(v, amp);
           };
         }
       },
