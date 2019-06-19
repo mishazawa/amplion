@@ -1,5 +1,52 @@
 extern crate cpal;
 
+use core::f32::consts::PI;
+
+#[derive(Debug)]
+pub enum Waves {
+  SINE,
+  SQUARE,
+}
+
+#[derive(Debug)]
+pub struct Wavetable {
+  pub wave: Waves,
+  pub phase: f32,
+  pub samples: Vec<f32>
+}
+
+impl Wavetable {
+  fn new (wtype: Waves) -> Self {
+    Self { wave: wtype, samples: Vec::new() , phase: 0.0 }
+  }
+
+  pub fn gen (&mut self, sample_rate: i32) {
+    match self.wave {
+      Waves::SINE => {
+        for sample_clock in 0..sample_rate {
+          self.samples.push((sample_clock as f32 * 2.0 * PI / sample_rate as f32).sin());
+        }
+      },
+      Waves::SQUARE => {
+        for sample_clock in 0..sample_rate {
+          if sample_clock < sample_rate / 2 {
+            self.samples.push(0.9);
+          } else {
+            self.samples.push(-0.9);
+          }
+        }
+      },
+    };
+  }
+
+  fn next_value (&mut self, freq: f32) -> f32 {
+    self.phase = (self.phase + freq) % self.samples.len() as f32;
+    *self.samples.get(self.phase as usize).unwrap()
+  }
+}
+
+fn amplify (v: f32, a: f32) -> f32 { v * a }
+
 fn main() {
   let device = cpal::default_output_device().expect("Failed to get default output device");
   let format = device.default_output_format().expect("Failed to get default output format");
@@ -7,39 +54,19 @@ fn main() {
   let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
   event_loop.play_stream(stream_id.clone());
 
-  let sample_rate = format.sample_rate.0 as f32;
-  let mut sample_clock = 0f32;
+  let sample_rate = format.sample_rate.0;
 
-  // Produce a sinusoid of maximum amplitude.
-  let mut next_value = || {
-    sample_clock = (sample_clock + 1.0) % sample_rate;
-    (sample_clock * 440.0 * 2.0 * 3.141592 / sample_rate).sin()
-  };
+  let mut sine = Wavetable::new(Waves::SQUARE);
+  sine.gen(sample_rate as i32);
 
   event_loop.run(move |_, data| {
     match data {
-      cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(mut buffer) } => {
-        for sample in buffer.chunks_mut(format.channels as usize) {
-          let value = ((next_value() * 0.5 + 0.5) * std::u16::MAX as f32) as u16;
-          for out in sample.iter_mut() {
-            *out = value;
-          }
-        }
-      },
-      cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::I16(mut buffer) } => {
-        for sample in buffer.chunks_mut(format.channels as usize) {
-          let value = (next_value() * std::i16::MAX as f32) as i16;
-          for out in sample.iter_mut() {
-            *out = value;
-          }
-        }
-      },
       cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
         for sample in buffer.chunks_mut(format.channels as usize) {
-          let value = next_value();
+          let v = sine.next_value(880.0);
           for out in sample.iter_mut() {
-            *out = value;
-          }
+            *out = amplify(v, 0.0125);
+          };
         }
       },
       _ => (),
