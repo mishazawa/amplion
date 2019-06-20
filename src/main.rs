@@ -48,7 +48,7 @@ fn main() {
         }
       }
     thread::sleep(timeout);
-}
+    }
   });
 
   let mut last_freq = 0.0;
