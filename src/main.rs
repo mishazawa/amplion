@@ -13,6 +13,7 @@ use std::time::Duration;
 
 #[derive(Debug)]
 struct Envelope {
+  gate: bool,
   attack: f32,
   decay: f32,
   sustain: f32,
@@ -20,18 +21,22 @@ struct Envelope {
 }
 
 impl Envelope {
-  pub fn new (a: f32, d: f32, s: f32, r: f32) -> Self {
+  pub fn new (sample_rate: i32, a: f32, d: f32, s: f32, r: f32) -> Self {
     Self {
-      attack: a,
-      decay: d,
+      gate: false,
+      attack: a * sample_rate as f32,
+      decay: d * sample_rate as f32,
       sustain: s,
-      release: r
+      release: r * sample_rate as f32,
     }
   }
 
+  pub fn enable (&mut self, val: bool) {
+    self.gate = val;
+  }
   pub fn amplitude (&self, table: &osc::Wavetable, playing: f32) -> f32 {
     let current = table.phase() / table.sample_rate() as f32;
-    println!("{:?}", current);
+    // println!("{:?}", current);
     if current < self.attack {
       return current;
     }
@@ -62,10 +67,13 @@ fn main() {
 
   event_loop.play_stream(stream_id.clone());
 
-  let sample_rate = format.sample_rate.0;
+  let sample_rate = format.sample_rate.0 as i32;
 
-  let mut n3 = osc::Wavetable::new(osc::Waves::SIN, sample_rate as i32);
-  let env = Envelope::new(0.2, 0.1, 0.5, 0.3);
+  let mut n3 = osc::Wavetable::new(osc::Waves::NO, sample_rate);
+  let mut env = Envelope::new(sample_rate, 0.2, 0.1, 0.5, 0.3);
+
+  env.enable(true);
+
   thread::spawn(move || {
     if let Err(e) = misc::play(tx.clone(), false) {
       println!("{:?}", e);
