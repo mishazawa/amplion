@@ -30,29 +30,30 @@ fn main() {
   let mut n3 = osc::Wavetable::new(osc::Waves::SIN, sample_rate as i32);
 
   thread::spawn(move || {
-    // if let Err(e) = misc::play(tx, false) {
-    //   println!("{:?}", e);
-    // }
-    let in_ports = context
-                    .devices()
-                    .unwrap()
-                    .into_iter()
-                    .filter_map(|dev| context.input_port(dev, BUF_LEN).ok())
-                    .collect::<Vec<_>>();
-    loop {
-      for port in &in_ports {
-        if let Ok(Some(events)) = port.read_n(BUF_LEN) {
-          for e in events {
-            tx.send(e.message).unwrap();
+    if let Err(e) = misc::play(tx.clone(), false) {
+      println!("{:?}", e);
+    } else {
+      let in_ports = context
+                      .devices()
+                      .unwrap()
+                      .into_iter()
+                      .filter_map(|dev| context.input_port(dev, BUF_LEN).ok())
+                      .collect::<Vec<_>>();
+      loop {
+        for port in &in_ports {
+          if let Ok(Some(events)) = port.read_n(BUF_LEN) {
+            for e in events {
+              tx.send(e.message).unwrap();
+            }
           }
         }
+        thread::sleep(timeout);
       }
-    thread::sleep(timeout);
     }
+
   });
 
   let mut last_freq = 0.0;
-
   event_loop.run(move |_, data| {
     match data {
       cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {

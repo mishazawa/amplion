@@ -3,6 +3,10 @@ use std::time::Duration;
 use std::sync::mpsc;
 use std::thread;
 
+pub static LEDS_TOP_ROW: [u8; 9] = [96, 97, 98, 99, 100, 101, 102, 103, 104];
+pub static LEDS_BOTTOM_ROW: [u8; 9] = [112, 113, 114, 115, 116, 117, 118, 119, 120];
+
+
 pub static CHANNEL: u8 = 0;
 pub static MELODY: [(u8, u32); 42] = [(60, 1), (60, 1), (67, 1), (67, 1), (69, 1), (69, 1), (67, 2),
                                   (65, 1), (65, 1), (64, 1), (64, 1), (62, 1), (62, 1), (60, 2),
