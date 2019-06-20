@@ -1,3 +1,3 @@
-sudo apt-get install libasound2-dev;
+sudo apt-get install libasound2-dev libportmidi-dev;
 
 cargo run;
