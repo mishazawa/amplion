@@ -9,11 +9,12 @@ mod misc;
 use std::clone::{Clone};
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 
 fn main() {
-  // let context = pm::PortMidi::new().unwrap();
-  // let timeout = Duration::from_millis(10);
-  // const BUF_LEN: usize = 1024;
+  let context = pm::PortMidi::new().unwrap();
+  let timeout = Duration::from_millis(10);
+  const BUF_LEN: usize = 1024;
   let (tx, rx) = mpsc::channel();
 
   let device = cpal::default_output_device().expect("Failed to get default output device");
@@ -29,8 +30,24 @@ fn main() {
   let mut n3 = osc::Wavetable::new(osc::Waves::SIN, sample_rate as i32);
 
   thread::spawn(move || {
-    if let Err(e) = misc::play(tx, false) {
-      println!("{:?}", e);
+    // if let Err(e) = misc::play(tx, false) {
+    //   println!("{:?}", e);
+    // }
+    let in_ports = context
+                    .devices()
+                    .unwrap()
+                    .into_iter()
+                    .filter_map(|dev| context.input_port(dev, BUF_LEN).ok())
+                    .collect::<Vec<_>>();
+    loop {
+      for port in &in_ports {
+        if let Ok(Some(events)) = port.read_n(BUF_LEN) {
+          for e in events {
+            tx.send(e.message).unwrap();
+          }
+        }
+      }
+    thread::sleep(timeout);
     }
   });
 
