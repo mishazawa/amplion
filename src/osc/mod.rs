@@ -1,6 +1,7 @@
 use core::f32::consts::PI;
 
 #[derive(Debug, Copy, Clone)]
+#[allow(dead_code)]
 pub enum Waves {
   SIN,
   SINE,
@@ -77,5 +78,13 @@ impl Wavetable {
   pub fn next_value (&mut self, freq: f32) -> f32 {
     self.phase = (self.phase + freq) % self.samples.len() as f32;
     *self.samples.get(self.phase as usize).unwrap()
+  }
+
+  pub fn phase (&self) -> f32 {
+    self.phase
+  }
+
+  pub fn sample_rate (&self) -> i32 {
+    self.sample_rate
   }
 }
