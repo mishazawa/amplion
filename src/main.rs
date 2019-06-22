@@ -13,43 +13,94 @@ use std::time::Duration;
 
 #[derive(Debug)]
 struct Envelope {
-  gate: bool,
-  attack: f32,
-  decay: f32,
-  sustain: f32,
-  release: f32,
+  max_amp: f32,
+  attack_time: f32,
+  decay_time: f32,
+  sustain_amp: f32,
+  release_time: f32,
+  samples: Vec<f32>,
+  current_time: i32,
+  duration_time: f32,
+
+}
+
+impl Default for Envelope {
+  fn default () -> Envelope {
+    Envelope {
+      attack_time: 0.0,
+      decay_time: 0.0,
+      release_time: 0.0,
+      sustain_amp: 0.8,
+      max_amp: 1.0,
+      current_time: 0,
+      duration_time: 0.4,
+      samples: Vec::new()
+    }
+  }
 }
 
 impl Envelope {
   pub fn new (sample_rate: i32, a: f32, d: f32, s: f32, r: f32) -> Self {
-    Self {
-      gate: false,
-      attack: a * sample_rate as f32,
-      decay: d * sample_rate as f32,
-      sustain: s,
-      release: r * sample_rate as f32,
+    let mut env = Self {
+      attack_time: a,
+      decay_time: d,
+      sustain_amp: s,
+      release_time: r,
+      ..Default::default()
+    };
+
+    env.gen_adsr(sample_rate);
+    env
+  }
+
+  fn gen_adsr (&mut self,
+    sample_rate: i32,
+    ) {
+    let mut samples = Vec::new();
+
+    let attack = self.attack_time * sample_rate as f32;
+    let decay = self.decay_time * sample_rate as f32;
+    let release = self.release_time * sample_rate as f32;
+    let duration = self.duration_time * sample_rate as f32;
+
+    let mut index = 0.0;
+
+    while index < duration {
+      let mut amp = 0.0;
+
+
+      if index <= attack {
+        amp = index * self.max_amp / attack;
+      }
+
+      if index <= attack + decay {
+        amp = ((self.sustain_amp - self.max_amp) / decay) * (index - attack) + self.max_amp;
+      }
+
+      if index <= duration - release {
+        amp = self.sustain_amp;
+      }
+
+      if index > release {
+        amp = -(self.sustain_amp / release) * (index - (duration - release)) + self.sustain_amp;
+      }
+
+      samples.push(amp);
+      index += 1.0;
+    }
+
+    self.samples = samples;
+  }
+
+  pub fn gate (&mut self, on: bool) {
+    if !on {
+      self.current_time = 0;
     }
   }
 
-  pub fn enable (&mut self, val: bool) {
-    self.gate = val;
-  }
-  pub fn amplitude (&self, table: &osc::Wavetable, playing: f32) -> f32 {
-    let current = table.phase() / table.sample_rate() as f32;
-    // println!("{:?}", current);
-    if current < self.attack {
-      return current;
-    }
-
-    if current > self.attack && current < self.sustain {
-      return current * self.decay;
-    }
-
-    if playing > 0.0 {
-      return self.sustain;
-    } else {
-      return self.release;
-    }
+  pub fn next_value (&mut self) -> f32 {
+    self.current_time = (self.current_time + 1) % self.samples.len() as i32;
+    *self.samples.get(self.current_time as usize).unwrap()
   }
 }
 
@@ -69,10 +120,8 @@ fn main() {
 
   let sample_rate = format.sample_rate.0 as i32;
 
-  let mut n3 = osc::Wavetable::new(osc::Waves::NO, sample_rate);
-  let mut env = Envelope::new(sample_rate, 0.2, 0.1, 0.5, 0.3);
-
-  env.enable(true);
+  let mut n3 = osc::Wavetable::new(osc::Waves::SIN, sample_rate);
+  let mut _env = Envelope::new(sample_rate, 0.8, 0.1, 0.8, 0.5);
 
   thread::spawn(move || {
     if let Err(e) = misc::play(tx.clone(), false) {
@@ -99,6 +148,8 @@ fn main() {
   });
 
   let mut last_freq = 0.0;
+  let mut note_on = false;
+
   event_loop.run(move |_, data| {
     match data {
       cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
@@ -107,8 +158,11 @@ fn main() {
           match mess.status {
             midi::KEY_DEPRESS => {
               last_freq = 0.0;
+              note_on = false;
+              _env.gate(note_on);
             },
             midi::KEY_PRESS => {
+              note_on = true;
               last_freq = midi::midi_to_freq(mess.data1);
             },
             _ => ()
@@ -117,7 +171,8 @@ fn main() {
 
         for sample in buffer.chunks_mut(format.channels as usize) {
           let v3 = n3.next_value(last_freq);
-          let amp = env.amplitude(&n3, last_freq);
+          let amp = _env.next_value();
+          println!("{:?}", amp);
           for out in sample.iter_mut() {
             *out = misc::amplify(v3, amp);
           };

@@ -32,7 +32,7 @@ impl Wavetable {
       sample_rate,
     }
   }
-  fn gen(wave: Waves, sample_rate: i32) -> Vec<f32> {
+  fn gen (wave: Waves, sample_rate: i32) -> Vec<f32> {
     let mut samples = Vec::new();
     match wave {
       Waves::SIN | Waves::SINE => {
