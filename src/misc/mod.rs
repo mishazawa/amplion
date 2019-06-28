@@ -18,6 +18,9 @@ pub static MELODY: [(u8, u32); 42] = [(60, 1), (60, 1), (67, 1), (67, 1), (69, 1
 pub fn amplify (v: f32, a: f32) -> f32 { v * a }
 
 
+const PLAY_TIME: u64 = 400;
+const PAUSE_TIME: u64 = 100;
+
 pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> pm::Result<()> {
   for &(note, dur) in MELODY.iter().cycle() {
     let note_on = MidiMessage {
@@ -33,7 +36,7 @@ pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> pm::Result<()> {
     tx.send(note_on).unwrap();
 
     // note hold time before sending note off
-    thread::sleep(Duration::from_millis(dur as u64 * 400));
+    thread::sleep(Duration::from_millis(dur as u64 * PLAY_TIME));
 
     let note_off = MidiMessage {
       status: 0x80 + CHANNEL,
@@ -48,7 +51,37 @@ pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> pm::Result<()> {
     tx.send(note_off).unwrap();
 
     // short pause
-    thread::sleep(Duration::from_millis(100));
+    thread::sleep(Duration::from_millis(PAUSE_TIME));
   }
   Ok(())
+}
+
+#[derive(Debug)]
+pub struct Timer {
+  time: std::time::SystemTime,
+  delta: std::time::Duration,
+}
+
+impl Timer {
+  pub fn new () -> Self {
+    Self {
+      time: std::time::SystemTime::now(),
+      delta: std::time::Duration::new(0, 0)
+    }
+  }
+
+  pub fn tick (&mut self) {
+    match self.time.elapsed() {
+      Ok(elapsed) => {
+        self.delta = elapsed;
+      },
+      Err(e) => {
+        println!("Error: {:?}", e);
+      }
+    }
+  }
+
+  pub fn get_delta (&self) -> f32 {
+    self.delta.as_millis() as f32
+  }
 }
