@@ -5,9 +5,6 @@ pub struct Envelope {
   attack_time: f32,
   decay_time: f32,
   release_time: f32,
-  on_trigger_time: f32,
-  off_trigger_time: f32,
-  enabled: bool
 }
 
 impl Default for Envelope {
@@ -18,9 +15,6 @@ impl Default for Envelope {
       release_time: 0.4,
       sustain_amp: 0.5,
       max_amp: 1.0,
-      on_trigger_time: 0.0,
-      off_trigger_time: 0.0,
-      enabled: false
     }
   }
 }
@@ -30,15 +24,19 @@ impl Envelope {
     Self {..Default::default()}
   }
 
-  pub fn get_amp (&mut self, time_elapsed: f32) -> f32 {
+  pub fn get_diff (&self, release_value: f32, time_elapsed: f32) -> bool {
+    time_elapsed - release_value > self.release_time * 1000.0
+  }
+
+  pub fn get_amp_voice (&self, time_elapsed: f32, voice: &super::Voice) -> f32 {
     let mut amp = 0.0;
-    let time = time_elapsed - self.on_trigger_time;
+    let time = time_elapsed - voice.start_time;
 
     let attack = self.attack_time * 1000.0;
     let decay = self.decay_time * 1000.0;
     let release = self.release_time * 1000.0;
 
-    if self.enabled {
+    if voice.enabled {
       if time <= attack {
         amp = (time / attack) * self.max_amp;
       }
@@ -52,21 +50,14 @@ impl Envelope {
       }
 
     } else {
-      amp = ((time_elapsed - self.off_trigger_time) / release) * (0.0 - self.sustain_amp) + self.sustain_amp;
+      amp = ((time_elapsed - voice.end_time) / release) * (0.0 - self.sustain_amp) + self.sustain_amp;
     }
 
-    if amp <= 0.0001 { amp = 0.0; }
+    if amp <= 0.0001 {
+      amp = 0.0;
+    }
 
     amp
-  }
-
-  pub fn gate (&mut self, flag: bool, time: f32) {
-    self.enabled = flag;
-    if flag {
-      self.on_trigger_time = time;
-    } else {
-      self.off_trigger_time = time;
-    }
   }
 
   pub fn set_params (&mut self, a: f32, d: f32, s: f32, r: f32) {
