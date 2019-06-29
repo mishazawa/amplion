@@ -2,6 +2,8 @@
 
 + mixer limiter
 
++ mixer w/o clipping
+
 + random generator noise
 
 + cleanup structs (done)
