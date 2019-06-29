@@ -1,72 +1,24 @@
 extern crate cpal;
 extern crate portmidi as pm;
 extern crate rand;
-mod osc;
+
+mod modules;
 mod midi;
 mod misc;
-mod env;
 
 use std::clone::{Clone};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration};
-use std::collections::HashMap;
+use modules::{
+  mixer::Mixer,
+  voice::Voice,
+  wavetable::Wavetable,
+  wavetable::Waves,
+  envelope::Envelope,
+  timer::Timer,
+};
 
-#[derive(Debug)]
-pub struct Voice {
-  note: u8,
-  freq: f32,
-  phase: f32,
-  sample_rate: i32,
-  start_time: f32,
-  end_time: f32,
-  enabled: bool
-}
-
-impl Voice {
-  pub fn next_phase (&mut self) {
-    self.phase = (self.phase + self.freq) % self.sample_rate as f32;
-  }
-}
-
-#[derive(Debug)]
-struct Mixer {
-  voices: HashMap<u8, Voice>,
-}
-
-impl Mixer {
-  pub fn new () -> Self {
-    Self { voices: HashMap::new() }
-  }
-
-  pub fn amplify (v: f32, a: f32) -> f32 { v * a }
-
-  pub fn add (&mut self, voice: Voice) {
-    self.voices.insert(voice.note, voice);
-  }
-
-  pub fn remove_unused (&mut self, envelope: &env::Envelope, time: f32) {
-    let empties: Vec<_> = self.voices.iter_mut().filter(|(_, v)| {
-      v.enabled == false && envelope.get_diff(v.end_time, time)
-    }).map(|(k, _)| k.clone()).collect();
-
-    for empty in empties { self.voices.remove(&empty); }
-  }
-
-  pub fn normalize (&self, values: Vec<f32>) -> f32 {
-    let summary = values.iter().fold(0.0, |acc, &x| acc + x);
-    if values.len() > 0 { summary / values.len() as f32 } else { summary }
-  }
-
-  pub fn mix (&mut self, osc: &osc::Wavetable, env: &env::Envelope, time_elapsed: f32) -> f32 {
-    let mut amps = Vec::new();
-    for (_, voice) in &mut self.voices {
-      voice.next_phase();
-      amps.push(env.get_amp_voice(time_elapsed, &voice) * osc.get_value(voice.phase));
-    }
-    self.normalize(amps)
-  }
-}
 
 fn main() {
   let context = pm::PortMidi::new().unwrap();
@@ -84,10 +36,11 @@ fn main() {
 
   let sample_rate = format.sample_rate.0 as i32;
 
-  let n3 = osc::Wavetable::new(osc::Waves::SIN, sample_rate);
-  let mut env = env::Envelope::new();
+  let n3 = Wavetable::new(Waves::SIN, sample_rate);
+  let mut env = Envelope::new();
 
-  env.set_params(1.1, 0.4, 0.5, 5.0);
+  env.set_params(0.4, 0.4, 0.7, 1.0);
+  env.set_amps(0.8, 0.7);
 
   thread::spawn(move || {
     // if let Err(e) = misc::play(tx.clone(), false) {
@@ -113,7 +66,7 @@ fn main() {
 
   });
 
-  let mut timer = misc::Timer::new();
+  let mut timer = Timer::new();
   let mut mixer = Mixer::new();
 
   event_loop.run(move |_, data| {
@@ -132,9 +85,8 @@ fn main() {
                   voice.end_time = timer.get_delta();
                   voice.enabled = false;
                 },
-                None => println!("Midi {} is unreviewed.", &mess.data1)
+                None => println!("Midi {} is not pressed.", &mess.data1)
               }
-              // mixer.remove(&mess.data1);
             },
 
             midi::KEY_PRESS => {

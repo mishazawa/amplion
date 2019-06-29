@@ -75,17 +75,8 @@ impl Wavetable {
     samples
   }
 
-  pub fn next_value (&mut self, freq: f32) -> f32 {
-    self.phase = (self.phase + freq) % self.samples.len() as f32;
-    *self.samples.get(self.phase as usize).unwrap()
-  }
-
   pub fn get_value (&self, phase: f32) -> f32 {
     *self.samples.get(phase as usize).unwrap()
-  }
-
-  pub fn phase (&self) -> f32 {
-    self.phase
   }
 
   pub fn sample_rate (&self) -> i32 {

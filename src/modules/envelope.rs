@@ -1,3 +1,5 @@
+use super::voice::{Voice};
+
 #[derive(Debug)]
 pub struct Envelope {
   max_amp: f32,
@@ -24,11 +26,11 @@ impl Envelope {
     Self {..Default::default()}
   }
 
-  pub fn get_diff (&self, release_value: f32, time_elapsed: f32) -> bool {
+  pub fn is_stopped (&self, release_value: f32, time_elapsed: f32) -> bool {
     time_elapsed - release_value > self.release_time * 1000.0
   }
 
-  pub fn get_amp_voice (&self, time_elapsed: f32, voice: &super::Voice) -> f32 {
+  pub fn get_amp_voice (&self, time_elapsed: f32, voice: &Voice) -> f32 {
     let mut amp = 0.0;
     let time = time_elapsed - voice.start_time;
 
@@ -64,6 +66,11 @@ impl Envelope {
     self.attack_time = a;
     self.decay_time = d;
     self.release_time = r;
+    self.sustain_amp = s;
+  }
+
+  pub fn set_amps (&mut self, m: f32, s: f32) {
+    self.max_amp = m;
     self.sustain_amp = s;
   }
 }

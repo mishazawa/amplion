@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use pm::MidiMessage;
 use std::time::Duration;
 use std::sync::mpsc;
@@ -6,8 +7,8 @@ use std::thread;
 pub static LEDS_TOP_ROW: [u8; 9] = [96, 97, 98, 99, 100, 101, 102, 103, 104];
 pub static LEDS_BOTTOM_ROW: [u8; 9] = [112, 113, 114, 115, 116, 117, 118, 119, 120];
 
-
 pub static CHANNEL: u8 = 0;
+
 pub static MELODY: [(u8, u32); 42] = [(60, 1), (60, 1), (67, 1), (67, 1), (69, 1), (69, 1), (67, 2),
                                   (65, 1), (65, 1), (64, 1), (64, 1), (62, 1), (62, 1), (60, 2),
                                   (67, 1), (67, 1), (65, 1), (65, 1), (64, 1), (64, 1), (62, 2),
@@ -18,7 +19,9 @@ pub static MELODY: [(u8, u32); 42] = [(60, 1), (60, 1), (67, 1), (67, 1), (69, 1
 
 
 const PLAY_TIME: u64 = 400;
+
 const PAUSE_TIME: u64 = 100;
+
 
 fn midi_note (note: u8, trigger: bool) -> MidiMessage {
   MidiMessage {
@@ -58,43 +61,4 @@ pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> pm::Result<()> {
     thread::sleep(Duration::from_millis(PAUSE_TIME));
   }
   Ok(())
-}
-
-#[derive(Debug)]
-pub struct Timer {
-  time: std::time::SystemTime,
-  delta: std::time::Duration,
-}
-
-impl Timer {
-  pub fn new () -> Self {
-    println!("u128 as f32 max:    {}", u128::max_value() as f32);
-    Self {
-      time: std::time::SystemTime::now(),
-      delta: std::time::Duration::new(0, 0)
-    }
-  }
-
-  pub fn tick (&mut self) {
-    match self.time.elapsed() {
-      Ok(elapsed) => {
-        self.reset();
-        self.delta = elapsed;
-      },
-      Err(e) => {
-        println!("Error: {:?}", e);
-      }
-    }
-  }
-
-  pub fn get_delta (&self) -> f32 {
-    self.delta.as_millis() as f32
-  }
-
-  fn reset (&mut self) {
-    if self.get_delta() == std::f32::INFINITY {
-      self.time = std::time::SystemTime::now();
-      self.delta = std::time::Duration::new(0, 0);
-    }
-  }
 }
