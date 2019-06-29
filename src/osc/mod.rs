@@ -80,6 +80,10 @@ impl Wavetable {
     *self.samples.get(self.phase as usize).unwrap()
   }
 
+  pub fn get_value (&self, phase: f32) -> f32 {
+    *self.samples.get(phase as usize).unwrap()
+  }
+
   pub fn phase (&self) -> f32 {
     self.phase
   }

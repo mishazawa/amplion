@@ -21,34 +21,39 @@ pub fn amplify (v: f32, a: f32) -> f32 { v * a }
 const PLAY_TIME: u64 = 400;
 const PAUSE_TIME: u64 = 100;
 
+fn midi_note (note: u8, trigger: bool) -> MidiMessage {
+  MidiMessage {
+    status: (if trigger {0x90} else {0x80}) + CHANNEL,
+    data1: note,
+    data2: 100,
+  }
+}
+
 pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> pm::Result<()> {
   for &(note, dur) in MELODY.iter().cycle() {
-    let note_on = MidiMessage {
-      status: 0x90 + CHANNEL,
-      data1: note,
-      data2: 100,
-    };
+    let note1_on = midi_note(note, true);
+    let note2_on = midi_note(note - 7, true);
+
 
     if verbose {
-      println!("{}", note_on)
+      println!("on -> {}, {}", note1_on, note2_on);
     }
 
-    tx.send(note_on).unwrap();
-
-    // note hold time before sending note off
+    tx.send(note1_on).unwrap();
     thread::sleep(Duration::from_millis(dur as u64 * PLAY_TIME));
 
-    let note_off = MidiMessage {
-      status: 0x80 + CHANNEL,
-      data1: note,
-      data2: 100,
-    };
+    tx.send(note2_on).unwrap();
+    thread::sleep(Duration::from_millis(dur as u64 * PLAY_TIME));
+
+    let note1_off = midi_note(note, false);
+    let note2_off = midi_note(note - 7, false);
 
     if verbose {
-      println!("{}", note_off);
+      println!("off -> {}, {}", note1_off, note2_off);
     }
 
-    tx.send(note_off).unwrap();
+    tx.send(note1_off).unwrap();
+    tx.send(note2_off).unwrap();
 
     // short pause
     thread::sleep(Duration::from_millis(PAUSE_TIME));
