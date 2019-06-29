@@ -28,6 +28,35 @@ impl Voice {
   }
 }
 
+#[derive(Debug)]
+struct Mixer {
+  voices: HashMap<u8, Voice>,
+}
+
+impl Mixer {
+  pub fn new () -> Self {
+    Self { voices: HashMap::new() }
+  }
+
+  pub fn add (&mut self, voice: Voice) {
+    self.voices.insert(voice.note, voice);
+  }
+
+  pub fn remove (&mut self, key: &u8) {
+    self.voices.remove(key);
+  }
+
+  pub fn mix (&mut self, osc: &osc::Wavetable) -> f32 {
+    let mut amplitude = 0.0;
+    let channels = self.voices.len() as f32;
+    for (_, voice) in &mut self.voices {
+      voice.next_phase();
+      amplitude += osc.get_value(voice.phase) / channels;
+    }
+    amplitude
+  }
+}
+
 // fn filter_depressed_voices (voices: &mut HashMap<u8, Voice>) {
 //   voices = voices.filter()
 // }
@@ -48,15 +77,15 @@ fn main() {
 
   let sample_rate = format.sample_rate.0 as i32;
 
-  let mut n3 = osc::Wavetable::new(osc::Waves::SIN, sample_rate);
+  let n3 = osc::Wavetable::new(osc::Waves::SIN, sample_rate);
   let mut env = env::Envelope::new();
 
   env.set_params(0.1, 0.1, 0.3, 5.0);
 
   thread::spawn(move || {
-    if let Err(e) = misc::play(tx.clone(), true) {
-      println!("{:?}", e);
-    } else {
+    // if let Err(e) = misc::play(tx.clone(), true) {
+    //   println!("{:?}", e);
+    // } else {
       let in_ports = context
                       .devices()
                       .unwrap()
@@ -73,7 +102,7 @@ fn main() {
         }
         thread::sleep(timeout);
       }
-    }
+    // }
 
   });
 
@@ -81,7 +110,7 @@ fn main() {
 
   let mut timer = misc::Timer::new();
 
-  let mut voices: HashMap<u8, Voice> = HashMap::new();
+  let mut mixer = Mixer::new();
 
   event_loop.run(move |_, data| {
     match data {
@@ -95,19 +124,18 @@ fn main() {
 
             midi::KEY_DEPRESS => {
               env.gate(false, timer.get_delta());
-              // voices.remove(&mess.data1);
-              match voices.get_mut(&mess.data1) {
-                  Some(voice) => {
-                    voice.end_time = timer.get_delta();
-                  },
-                  None => println!("Midi {} is unreviewed.", &mess.data1)
-              }
+              // match voices.get_mut(&mess.data1) {
+              //     Some(voice) => {
+              //       voice.end_time = timer.get_delta();
+              //     },
+              //     None => println!("Midi {} is unreviewed.", &mess.data1)
+              // }
+              mixer.remove(&mess.data1);
             },
 
             midi::KEY_PRESS => {
               env.gate(true, timer.get_delta());
-
-              voices.insert(mess.data1, Voice {
+              mixer.add(Voice {
                 note: mess.data1,
                 freq: midi::midi_to_freq(mess.data1),
                 phase: 0.0,
@@ -124,17 +152,11 @@ fn main() {
         }
 
         for sample in buffer.chunks_mut(format.channels as usize) {
-          let channels = voices.len() as f32;
-          for (_, voice) in &mut voices {
-            voice.next_phase();
-            let v3 = n3.get_value(voice.phase);
-            // println!("{:?}", );
-            // n3.next_value(last_freq);
-            // let amp = env.get_amp(timer.get_delta());
-            for out in sample.iter_mut() {
-              *out = misc::amplify(v3 / channels, 0.3);
-            };
-          }
+          let amplitude = mixer.mix(&n3);
+
+          for out in sample.iter_mut() {
+            *out = misc::amplify(amplitude, 0.3);
+          };
 
         }
 
