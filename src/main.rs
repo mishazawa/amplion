@@ -46,14 +46,18 @@ impl Mixer {
     self.voices.remove(key);
   }
 
+  pub fn normalize (&self, values: Vec<f32>) -> f32 {
+    let summary = values.iter().fold(0.0, |acc, &x| acc + x);
+    if values.len() > 0 { summary / values.len() as f32 } else { summary }
+  }
+
   pub fn mix (&mut self, osc: &osc::Wavetable) -> f32 {
-    let mut amplitude = 0.0;
-    let channels = self.voices.len() as f32;
+    let mut amps = Vec::new();
     for (_, voice) in &mut self.voices {
       voice.next_phase();
-      amplitude += osc.get_value(voice.phase) / channels;
+      amps.push(osc.get_value(voice.phase));
     }
-    amplitude
+    self.normalize(amps)
   }
 }
 
@@ -83,9 +87,9 @@ fn main() {
   env.set_params(0.1, 0.1, 0.3, 5.0);
 
   thread::spawn(move || {
-    // if let Err(e) = misc::play(tx.clone(), true) {
-    //   println!("{:?}", e);
-    // } else {
+    if let Err(e) = misc::play(tx.clone(), false) {
+      println!("{:?}", e);
+    } else {
       let in_ports = context
                       .devices()
                       .unwrap()
@@ -102,14 +106,11 @@ fn main() {
         }
         thread::sleep(timeout);
       }
-    // }
+    }
 
   });
 
-  let mut last_freq = 0.0;
-
   let mut timer = misc::Timer::new();
-
   let mut mixer = Mixer::new();
 
   event_loop.run(move |_, data| {
@@ -143,8 +144,6 @@ fn main() {
                 start_time: timer.get_delta(),
                 end_time: 0.0,
               });
-
-              last_freq = midi::midi_to_freq(mess.data1);
             },
 
             _ => ()
@@ -153,11 +152,9 @@ fn main() {
 
         for sample in buffer.chunks_mut(format.channels as usize) {
           let amplitude = mixer.mix(&n3);
-
           for out in sample.iter_mut() {
-            *out = misc::amplify(amplitude, 0.3);
+            *out = misc::amplify(amplitude, 1.0);
           };
-
         }
 
       },
