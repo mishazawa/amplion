@@ -9,3 +9,5 @@
 + cleanup structs (done)
 
 + waves modulation
+
++ midi pressure data
