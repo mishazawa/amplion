@@ -30,18 +30,13 @@ impl Mixer {
     for empty in empties { self.voices.remove(&empty); }
   }
 
-  pub fn normalize (&self, values: Vec<f32>) -> f32 {
-    let summary = values.iter().fold(0.0, |acc, &x| acc + x);
-    if values.len() > 0 { summary / values.len() as f32 } else { summary }
-  }
-
   pub fn mix (&mut self, osc: &Wavetable, env: &Envelope, time_elapsed: f32) -> f32 {
-    let mut amps = Vec::new();
+    let mut amplitude = 0.0;
     for (_, voice) in &mut self.voices {
       voice.next_phase();
-      amps.push(env.get_amp_voice(time_elapsed, &voice) * osc.get_value(voice.phase));
+      amplitude += env.get_amp_voice(time_elapsed, &voice) * osc.get_value(voice.phase);
     }
-    self.normalize(amps)
+    amplitude.tanh()
   }
 }
 

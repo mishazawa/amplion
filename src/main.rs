@@ -44,7 +44,7 @@ fn main() {
 
   thread::spawn(move || {
     // if let Err(e) = misc::play(tx.clone(), false) {
-    //   println!("{:?}", e);
+      // println!("{:?}", e);
     // } else {
       let in_ports = context
                       .devices()
@@ -76,7 +76,6 @@ fn main() {
         timer.tick();
 
         if let Ok(mess) = rx.try_recv() {
-
           match mess.status {
 
             midi::KEY_DEPRESS => {
