@@ -17,6 +17,7 @@ use modules::{
   wavetable::Waves,
   envelope::Envelope,
   timer::Timer,
+  sequencer::Sequencer
 };
 
 
@@ -43,9 +44,9 @@ fn main() {
   env.set_amps(0.8, 0.7);
 
   thread::spawn(move || {
-    // if let Err(e) = misc::play(tx.clone(), false) {
-      // println!("{:?}", e);
-    // } else {
+    if let Err(e) = misc::play(tx.clone(), false) {
+      println!("{:?}", e);
+    } else {
       let in_ports = context
                       .devices()
                       .unwrap()
@@ -62,7 +63,7 @@ fn main() {
         }
         thread::sleep(timeout);
       }
-    // }
+    }
 
   });
 

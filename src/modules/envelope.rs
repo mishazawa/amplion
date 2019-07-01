@@ -56,7 +56,7 @@ impl Envelope {
     }
 
     if amp <= 0.0001 {
-      amp = 0.0;
+      amp = 0.0001;
     }
 
     amp
