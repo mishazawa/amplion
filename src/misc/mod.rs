@@ -33,6 +33,7 @@ fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 
 pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> pm::Result<()> {
   for &(note, dur) in MELODY.iter().cycle() {
+
     let note1_on = midi_note(note, true);
     let note2_on = midi_note(note - 7, true);
 

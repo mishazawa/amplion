@@ -5,6 +5,7 @@ extern crate rand;
 mod modules;
 mod midi;
 mod misc;
+mod ui;
 
 use std::clone::{Clone};
 use std::sync::mpsc;
@@ -20,12 +21,20 @@ use modules::{
   sequencer::Sequencer
 };
 
+use ui::{
+  UiThread,
+  UiMessage
+};
 
 fn main() {
   let context = pm::PortMidi::new().unwrap();
   let timeout = Duration::from_millis(10);
   const BUF_LEN: usize = 1024;
-  let (tx, rx) = mpsc::channel();
+
+  let ui: UiThread = UiThread::new();
+
+  let (midi_tx, midi_rx) = mpsc::channel();
+
 
   let device = cpal::default_output_device().expect("Failed to get default output device");
   let format = device.default_output_format().expect("Failed to get default output format");
@@ -44,7 +53,7 @@ fn main() {
   env.set_amps(0.8, 0.7);
 
   thread::spawn(move || {
-    if let Err(e) = misc::play(tx.clone(), false) {
+    if let Err(e) = misc::play(midi_tx.clone(), false) {
       println!("{:?}", e);
     } else {
       let in_ports = context
@@ -57,7 +66,7 @@ fn main() {
         for port in &in_ports {
           if let Ok(Some(events)) = port.read_n(BUF_LEN) {
             for e in events {
-              tx.send(e.message).unwrap();
+              midi_tx.send(e.message).unwrap();
             }
           }
         }
@@ -67,16 +76,26 @@ fn main() {
 
   });
 
+
+  let cursive_sender = ui.sender().clone();
+  thread::spawn(move || UiThread::run(cursive_sender));
+
   let mut timer = Timer::new();
   let mut mixer = Mixer::new();
+
+
 
   event_loop.run(move |_, data| {
     match data {
       cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
 
         timer.tick();
-
-        if let Ok(mess) = rx.try_recv() {
+        if let Ok(mess) = ui.receiver().try_recv() {
+          match mess {
+            UiMessage::QUIT => {}
+          }
+        }
+        if let Ok(mess) = midi_rx.try_recv() {
           match mess.status {
 
             midi::KEY_DEPRESS => {
