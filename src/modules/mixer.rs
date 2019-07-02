@@ -11,7 +11,7 @@ pub struct Mixer {
   pub voices: HashMap<u8, Voice>,
 }
 
-impl Mixer {
+impl <'a> Mixer {
   pub fn new () -> Self {
     Self { voices: HashMap::new() }
   }
@@ -36,7 +36,7 @@ impl Mixer {
       voice.next_phase();
       amplitude += env.get_amp_voice(time_elapsed, &voice) * osc.get_value(voice.phase);
     }
-    amplitude.tanh()
+    Mixer::amplify(amplitude.tanh(), 1.0)
   }
 }
 

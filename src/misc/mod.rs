@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use pm::MidiMessage;
+use portmidi::{MidiMessage, Result};
 use std::time::Duration;
 use std::sync::mpsc;
 use std::thread;
@@ -31,7 +31,7 @@ fn midi_note (note: u8, trigger: bool) -> MidiMessage {
   }
 }
 
-pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> pm::Result<()> {
+pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> Result<()> {
   for &(note, dur) in MELODY.iter().cycle() {
 
     let note1_on = midi_note(note, true);
