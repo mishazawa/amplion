@@ -1,3 +1,5 @@
+extern crate portmidi;
+
 use portmidi::{PortMidi, MidiMessage};
 use std::thread;
 use std::sync::mpsc::{Sender};

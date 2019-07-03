@@ -1,10 +1,13 @@
+extern crate cpal;
+extern crate portmidi;
+
 mod modules;
 mod midi;
 mod misc;
 mod ui;
 
 
-use cpal;
+
 use portmidi::{
   MidiMessage,
   PortMidi
@@ -99,7 +102,9 @@ fn main() {
   thread::spawn(move || UiThread::run(cursive_sender));
 
   // midi thread
+  #[allow(unreachable_code)]
   thread::spawn(move || {
+    return;
     if let Err(e) = misc::play(midi_tx.clone(), false) {
       println!("{:?}", e);
     } else {

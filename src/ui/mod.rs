@@ -1,5 +1,10 @@
+extern crate cursive;
 use cursive::Cursive;
-use cursive::views::{Dialog, TextView};
+use cursive::views::{
+  LinearLayout,
+  TextView,
+  Button
+};
 use std::sync::mpsc::{self, Receiver, Sender};
 
 #[derive(Debug)]
@@ -37,12 +42,14 @@ impl UiThread {
       s.quit()
     };
 
-    // Creates a dialog with a single "Quit" button
-    siv.add_layer(Dialog::around(TextView::new("Hello Dialog!"))
-                         .title("Cursive")
-                         .button("Quit", quit_callback));
+    siv.add_global_callback('q', quit_callback);
+    let oscillators = LinearLayout::vertical()
+      .child(TextView::new("Hello cursive! Press <q> to quit."))
+      .child(TextView::new("Hello cursive! Press <q> to quit."))
+      .child(TextView::new("Hello cursive! Press <q> to quit."));
 
-
+    // Creates a dialog with a single "Quit" b
+    siv.add_layer(oscillators);
     // Starts the event loop.
     siv.run()
   }
