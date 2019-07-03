@@ -31,7 +31,9 @@ use ui::{
 
 fn on_ui_message_event (mess: UiMessage) {
   match mess {
-    UiMessage::QUIT => {}
+    UiMessage::QUIT => {
+      std::process::exit(0);
+    }
   }
 }
 
@@ -116,7 +118,6 @@ fn main() {
         // check ui message
         if let Ok(mess) = ui.receiver().try_recv() {
           on_ui_message_event(mess);
-          panic!("{:?}", "jopa");
         }
 
         // check midi message
