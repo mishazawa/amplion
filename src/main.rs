@@ -14,7 +14,7 @@ use portmidi::{
 };
 
 use std::clone::{ Clone };
-use std::sync::mpsc;
+use std::sync::mpsc::{self, Sender};
 use std::thread;
 
 use modules::{
@@ -63,11 +63,29 @@ fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32
         enabled: true
       });
     },
-
     _ => ()
   }
 }
 
+fn on_midi_knob_event(mess: MidiMessage) {
+  match mess.status {
+     midi::PAD_PRESS => {
+      println!("PP{:?}", mess.data1);
+    },
+    midi::PAD_DEPRESS => {
+      println!("PD{:?}", mess.data1);
+    }
+    midi::KNOB_EVENT => {
+      println!("KE{:?}", mess.data1);
+      match mess.data1 {
+        _ => {}
+      }
+    },
+    _ => {
+      println!("{:?}", mess.status);
+    }
+  }
+}
 
 fn main() {
   // sound setup
@@ -101,42 +119,47 @@ fn main() {
   // ui thread
   // thread::spawn(move || UiThread::run(cursive_sender));
 
+
   let mut seq = Sequencer::new();
-  seq.tempo(300.5);
 
+  seq.set_params(move |s: &mut Sequencer| {
+    s.tempo(300.5);
+    let voice = Voice {
+      note: 60,
+      freq: 440.0,
+      phase: 0.0,
+      sample_rate: 44100,
+      start_time: 0.0,
+      end_time: 0.0,
+      enabled: true
+    };
 
-  let voice = Voice {
-    note: 60,
-    freq: 440.0,
-    phase: 0.0,
-    sample_rate: 44100,
-    start_time: 0.0,
-    end_time: 0.0,
-    enabled: true
-  };
+    s.add(String::from("sine"), voice);
 
-  seq.add(String::from("sine"), voice);
-
-  for n in 0..SEQ_LEN {
-    if n % 2 == 0 {
-      seq.enable(String::from("sine"), n as u8);
-    } else {
-      seq.disable(String::from("sine"), n as u8);
+    for n in 0..SEQ_LEN {
+      if n % 2 == 0 {
+        s.enable(String::from("sine"), n as u8);
+      } else {
+        s.disable(String::from("sine"), n as u8);
+      }
     }
-  }
+  });
 
-  seq.play(true);
-  seq.walk();
+  let seq_tx = seq.sender.clone();
+
+  thread::spawn(move || {
+    seq.run();
+  });
 
   // midi thread
   #[allow(unreachable_code)]
   thread::spawn(move || {
-    return;
-    if let Err(e) = misc::play(midi_tx.clone(), false) {
-      println!("{:?}", e);
-    } else {
+    // return;
+    // if let Err(e) = misc::play(midi_tx.clone(), false) {
+    //   println!("{:?}", e);
+    // } else {
       midi::read_midi_ports(context, midi_tx.clone());
-    }
+    // }
   });
 
   // sound thread
@@ -155,6 +178,8 @@ fn main() {
         // check midi message
         if let Ok(mess) = midi_rx.try_recv() {
           on_midi_keyboard_event(mess, &mut mixer, timer.get_delta(), n3.sample_rate());
+          on_midi_knob_event(mess);
+          seq_tx.send(mess).unwrap();
         }
 
         for sample in buffer.chunks_mut(format.channels as usize) {

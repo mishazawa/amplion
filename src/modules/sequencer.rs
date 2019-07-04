@@ -1,7 +1,13 @@
 use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
-use super::{ voice::Voice };
+use std::sync::mpsc::{self, Sender, Receiver};
+use portmidi::{MidiMessage};
+use super::{
+  voice::Voice,
+  super::midi
+};
+
 
 pub const SEQ_LEN: usize = 16;
 
@@ -25,16 +31,21 @@ pub struct Sequencer {
   tempo: f32,
   tracks: HashMap<String, Track>,
   pointer: u8,
-  playing: bool
+  playing: bool,
+  receiver: Receiver<MidiMessage>,
+  pub sender: Sender<MidiMessage>
 }
 
 impl Sequencer {
   pub fn new () -> Self {
+    let (sender, receiver) = mpsc::channel();
     Self {
       tempo: 110.0,
       tracks: HashMap::new(),
       pointer: 0,
-      playing: false
+      playing: false,
+      receiver,
+      sender
     }
   }
 
@@ -76,8 +87,25 @@ impl Sequencer {
     self.pointer = (self.pointer + 1) % SEQ_LEN as u8;
   }
 
-  pub fn walk (&mut self) {
+  pub fn set_params (&mut self, f: impl Fn(&mut Sequencer) -> ()) {
+    f(self);
+  }
+
+  pub fn run (&mut self) {
     loop {
+      if let Ok(mess) = self.receiver.try_recv() {
+        match mess.status {
+          midi::KNOB_EVENT => {
+            match mess.data1 {
+              midi::MIDI_MAP_PLAY => self.play(true),
+              midi::MIDI_MAP_STOP => self.play(false),
+              _ => ()
+            }
+          },
+          _ => ()
+        }
+      }
+
       if self.playing == true {
         self.next_step();
 
@@ -99,9 +127,8 @@ impl Sequencer {
           println!("OFF {:?}", sample);
         }
       } else {
-        break;
+        thread::sleep(Duration::from_millis(100));
       }
-
     }
   }
 }

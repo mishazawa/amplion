@@ -13,7 +13,13 @@ pub fn midi_to_freq (key: u8) -> f32 {
 
 pub const KEY_PRESS:u8 = 144;
 pub const KEY_DEPRESS:u8 = 128;
+pub const PAD_PRESS:u8 = 153;
+pub const PAD_DEPRESS:u8 = 137;
+pub const KNOB_EVENT:u8 = 176;
 
+
+pub const MIDI_MAP_PLAY:u8 = 115;
+pub const MIDI_MAP_STOP:u8 = 114;
 
 pub fn read_midi_ports (context: PortMidi, midi_tx: Sender<MidiMessage>) {
   let timeout = Duration::from_millis(10);
