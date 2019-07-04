@@ -4,17 +4,25 @@ use std::time::Duration;
 use std::sync::mpsc;
 use std::thread;
 
+use crate::modules::{
+  voice::Voice,
+  sequencer::{Sequencer, SEQ_LEN},
+
+};
+
 pub static LEDS_TOP_ROW: [u8; 9] = [96, 97, 98, 99, 100, 101, 102, 103, 104];
 pub static LEDS_BOTTOM_ROW: [u8; 9] = [112, 113, 114, 115, 116, 117, 118, 119, 120];
 
 pub static CHANNEL: u8 = 0;
 
-pub static MELODY: [(u8, u32); 42] = [(60, 1), (60, 1), (67, 1), (67, 1), (69, 1), (69, 1), (67, 2),
-                                  (65, 1), (65, 1), (64, 1), (64, 1), (62, 1), (62, 1), (60, 2),
-                                  (67, 1), (67, 1), (65, 1), (65, 1), (64, 1), (64, 1), (62, 2),
-                                  (67, 1), (67, 1), (65, 1), (65, 1), (64, 1), (64, 1), (62, 2),
-                                  (60, 1), (60, 1), (67, 1), (67, 1), (69, 1), (69, 1), (67, 2),
-                                  (65, 1), (65, 1), (64, 1), (64, 1), (62, 1), (62, 1), (60, 2)];
+pub static MELODY: [(u8, u32); 42] = [
+  (60, 1), (60, 1), (67, 1), (67, 1), (69, 1), (69, 1), (67, 2),
+  (65, 1), (65, 1), (64, 1), (64, 1), (62, 1), (62, 1), (60, 2),
+  (67, 1), (67, 1), (65, 1), (65, 1), (64, 1), (64, 1), (62, 2),
+  (67, 1), (67, 1), (65, 1), (65, 1), (64, 1), (64, 1), (62, 2),
+  (60, 1), (60, 1), (67, 1), (67, 1), (69, 1), (69, 1), (67, 2),
+  (65, 1), (65, 1), (64, 1), (64, 1), (62, 1), (62, 1), (60, 2)
+  ];
 
 
 const PLAY_TIME: u64 = 400;
@@ -22,11 +30,58 @@ const PLAY_TIME: u64 = 400;
 const PAUSE_TIME: u64 = 100;
 
 
-fn midi_note (note: u8, trigger: bool) -> MidiMessage {
+pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
   MidiMessage {
     status: (if trigger {0x90} else {0x80}) + CHANNEL,
     data1: note,
     data2: 100,
+  }
+}
+
+
+pub fn seq_demo (s: &mut Sequencer) {
+  s.tempo(350.5);
+
+  s.add(String::from("sine"), Voice {
+    note: 89,
+    freq: 440.0,
+    phase: 0.0,
+    sample_rate: 44100,
+    start_time: 0.0,
+    end_time: 0.0,
+    enabled: true
+  });
+
+  s.add(String::from("cosine"), Voice {
+    note: 53,
+    freq: 440.0,
+    phase: 0.0,
+    sample_rate: 44100,
+    start_time: 0.0,
+    end_time: 0.0,
+    enabled: true
+  });
+
+  s.add(String::from("asine"), Voice {
+    note: 93,
+    freq: 440.0,
+    phase: 0.0,
+    sample_rate: 44100,
+    start_time: 0.0,
+    end_time: 0.0,
+    enabled: true
+  });
+
+  for n in 0..SEQ_LEN {
+    s.disable(String::from("sine"), n as u8);
+    s.disable(String::from("cosine"), n as u8);
+    if n % 2 == 0 {
+      s.enable(String::from("sine"), n as u8);
+    }
+    if n % 3 == 0 {
+      s.enable(String::from("cosine"), n as u8);
+    }
+    s.enable(String::from("asine"), n as u8);
   }
 }
 

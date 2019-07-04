@@ -69,7 +69,7 @@ fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32
 
 fn on_midi_knob_event(mess: MidiMessage) {
   match mess.status {
-     midi::PAD_PRESS => {
+    midi::PAD_PRESS => {
       println!("PP{:?}", mess.data1);
     },
     midi::PAD_DEPRESS => {
@@ -106,7 +106,7 @@ fn main() {
   let n3 = Wavetable::new(Waves::SIN, sample_rate);
   let mut env = Envelope::new();
 
-  env.set_params(0.4, 0.4, 0.7, 1.0);
+  env.set_params(0.1, 0.4, 0.7, 0.2);
   env.set_amps(0.8, 0.7);
 
   let mut timer = Timer::new();
@@ -121,35 +121,10 @@ fn main() {
 
 
   let mut seq = Sequencer::new();
-
-  seq.set_params(move |s: &mut Sequencer| {
-    s.tempo(300.5);
-    let voice = Voice {
-      note: 60,
-      freq: 440.0,
-      phase: 0.0,
-      sample_rate: 44100,
-      start_time: 0.0,
-      end_time: 0.0,
-      enabled: true
-    };
-
-    s.add(String::from("sine"), voice);
-
-    for n in 0..SEQ_LEN {
-      if n % 2 == 0 {
-        s.enable(String::from("sine"), n as u8);
-      } else {
-        s.disable(String::from("sine"), n as u8);
-      }
-    }
-  });
-
+  seq.set_params(misc::seq_demo);
   let seq_tx = seq.sender.clone();
-
-  thread::spawn(move || {
-    seq.run();
-  });
+  let seq_midi_tx = midi_tx.clone();
+  thread::spawn(move || seq.run(seq_midi_tx));
 
   // midi thread
   #[allow(unreachable_code)]

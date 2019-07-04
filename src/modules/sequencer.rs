@@ -5,7 +5,8 @@ use std::sync::mpsc::{self, Sender, Receiver};
 use portmidi::{MidiMessage};
 use super::{
   voice::Voice,
-  super::midi
+  super::midi,
+  super::misc,
 };
 
 
@@ -43,7 +44,7 @@ impl Sequencer {
       tempo: 110.0,
       tracks: HashMap::new(),
       pointer: 0,
-      playing: false,
+      playing: true,
       receiver,
       sender
     }
@@ -91,7 +92,7 @@ impl Sequencer {
     f(self);
   }
 
-  pub fn run (&mut self) {
+  pub fn run (&mut self, midi_tx: Sender<MidiMessage>) {
     loop {
       if let Ok(mess) = self.receiver.try_recv() {
         match mess.status {
@@ -109,22 +110,18 @@ impl Sequencer {
       if self.playing == true {
         self.next_step();
 
-        let mut samples = Vec::new();
-
-        for (key, track) in &self.tracks {
+        for (_, track) in &self.tracks {
           if track.steps[self.pointer as usize] {
-            samples.push(key);
+            midi_tx.send(misc::midi_note(track.voice.note, true)).unwrap();
           }
-        }
-
-        for sample in samples.iter() {
-          println!("ON {:?}", sample);
         }
 
         thread::sleep(Duration::from_millis((60_000.0 / self.tempo) as u64));
 
-        for sample in samples.iter() {
-          println!("OFF {:?}", sample);
+        for (_, track) in &self.tracks {
+          if track.steps[self.pointer as usize] {
+            midi_tx.send(misc::midi_note(track.voice.note, false)).unwrap();
+          }
         }
       } else {
         thread::sleep(Duration::from_millis(100));
