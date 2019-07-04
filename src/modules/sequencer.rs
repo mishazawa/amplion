@@ -1,8 +1,9 @@
 use std::collections::HashMap;
+use std::thread;
+use std::time::Duration;
 use super::{ voice::Voice };
 
-
-const SEQ_LEN: usize = 16;
+pub const SEQ_LEN: usize = 16;
 
 #[derive(Debug)]
 struct Track {
@@ -71,19 +72,38 @@ impl Sequencer {
     self.playing = state;
   }
 
-  pub fn next_step (&mut self) -> Vec<&String> {
+  pub fn next_step (&mut self) {
     self.pointer = (self.pointer + 1) % SEQ_LEN as u8;
-
-    let mut tracks_to_play = Vec::new();
-
-    for (key, track) in &self.tracks {
-      if track.steps[self.pointer as usize] {
-        tracks_to_play.push(key);
-      }
-    }
-    tracks_to_play
   }
 
+  pub fn walk (&mut self) {
+    loop {
+      if self.playing == true {
+        self.next_step();
+
+        let mut samples = Vec::new();
+
+        for (key, track) in &self.tracks {
+          if track.steps[self.pointer as usize] {
+            samples.push(key);
+          }
+        }
+
+        for sample in samples.iter() {
+          println!("ON {:?}", sample);
+        }
+
+        thread::sleep(Duration::from_millis((60_000.0 / self.tempo) as u64));
+
+        for sample in samples.iter() {
+          println!("OFF {:?}", sample);
+        }
+      } else {
+        break;
+      }
+
+    }
+  }
 }
 
 
@@ -118,6 +138,4 @@ fn it_works() {
 
   seq.play(true);
 
-  assert_eq!(seq.next_step().len(), 0);
-  assert_eq!(seq.next_step().len(), 1);
 }

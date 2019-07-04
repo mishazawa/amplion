@@ -6,6 +6,7 @@ use super::{
   wavetable::Wavetable
 };
 
+
 #[derive(Debug)]
 pub struct Mixer {
   pub voices: HashMap<u8, Voice>,

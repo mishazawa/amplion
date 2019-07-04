@@ -24,7 +24,7 @@ use modules::{
   wavetable::Waves,
   envelope::Envelope,
   timer::Timer,
-  // sequencer::Sequencer
+  sequencer::{Sequencer, SEQ_LEN}
 };
 
 use ui::{
@@ -96,10 +96,37 @@ fn main() {
 
   // ui setup
   let ui: UiThread = UiThread::new();
-  let cursive_sender = ui.sender().clone();
+  // let cursive_sender = ui.sender().clone();
 
   // ui thread
-  thread::spawn(move || UiThread::run(cursive_sender));
+  // thread::spawn(move || UiThread::run(cursive_sender));
+
+  let mut seq = Sequencer::new();
+  seq.tempo(300.5);
+
+
+  let voice = Voice {
+    note: 60,
+    freq: 440.0,
+    phase: 0.0,
+    sample_rate: 44100,
+    start_time: 0.0,
+    end_time: 0.0,
+    enabled: true
+  };
+
+  seq.add(String::from("sine"), voice);
+
+  for n in 0..SEQ_LEN {
+    if n % 2 == 0 {
+      seq.enable(String::from("sine"), n as u8);
+    } else {
+      seq.disable(String::from("sine"), n as u8);
+    }
+  }
+
+  seq.play(true);
+  seq.walk();
 
   // midi thread
   #[allow(unreachable_code)]
