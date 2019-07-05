@@ -6,7 +6,9 @@ mod midi;
 mod misc;
 mod ui;
 
-
+pub static SAMPLE_RATE: i32 = 44_100;
+// pub static SAMPLE_RATE: i32 = 22_050;
+// pub static SAMPLE_RATE: i32 = 11_025;
 
 use portmidi::{
   MidiMessage,
@@ -41,7 +43,7 @@ fn on_ui_message_event (mess: UiMessage) {
   }
 }
 
-fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32, osc_sample_rate: i32) {
+fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32) {
   match mess.status {
     midi::KEY_DEPRESS => {
       match mixer.voices.get_mut(&mess.data1) {
@@ -58,7 +60,6 @@ fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32
         note: mess.data1,
         freq: midi::midi_to_freq(mess.data1),
         phase: 0.0,
-        sample_rate: osc_sample_rate,
         start_time: delta_time,
         end_time: 0.0,
         enabled: true
@@ -89,10 +90,6 @@ fn on_midi_knob_event(mess: MidiMessage) {
 }
 
 
-
-
-
-
 fn main() {
   // sound setup
   let device = cpal::default_output_device().expect("Failed to get default output device");
@@ -103,7 +100,7 @@ fn main() {
   event_loop.play_stream(stream_id.clone());
 
   let sample_rate = format.sample_rate.0 as i32;
-
+  println!("{:?}", sample_rate);
   // midi setup
   let context = PortMidi::new().unwrap();
   let (midi_tx, midi_rx) = mpsc::channel();
@@ -113,8 +110,8 @@ fn main() {
   let mut mel = Instrument {
     polyphony: Mixer::new(),
     osc: vec![
-      Wavetable::new(Waves::SIN, sample_rate),
-      Wavetable::new(Waves::TRI, sample_rate),
+      Wavetable::new(Waves::SIN),
+      Wavetable::new(Waves::TRI),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
       env.set_params(0.6, 0.4, 0.7, 1.2);
@@ -127,7 +124,7 @@ fn main() {
   let mut noise = Instrument {
     polyphony: Mixer::new(),
     osc: vec![
-      Wavetable::new(Waves::NO, sample_rate),
+      Wavetable::new(Waves::NO),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
       env.set_params(0.6, 0.4, 0.7, 1.2);
@@ -139,7 +136,7 @@ fn main() {
 
 
   let mut timer = Timer::new();
-  let mut lfo = Lfo::new(0.03, sample_rate);
+  let mut lfo = Lfo::new(0.03);
   // ui setup
   let ui: UiThread = UiThread::new();
   // let cursive_sender = ui.sender().clone();

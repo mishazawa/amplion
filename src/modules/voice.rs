@@ -1,3 +1,5 @@
+use crate::{SAMPLE_RATE};
+
 #[derive(Debug)]
 pub struct Voice {
   pub note: u8,
@@ -6,20 +8,18 @@ pub struct Voice {
   pub phase: f32,
   pub start_time: f32,
   pub freq: f32,
-  pub sample_rate: i32,
 }
 
 impl Voice {
   pub fn next_phase (&mut self) {
-    self.phase = (self.phase + self.freq) % self.sample_rate as f32;
+    self.phase = (self.phase + self.freq) % SAMPLE_RATE as f32;
   }
 }
 
 
-pub fn create_blank_voice (freq: f32, sample_rate: i32) -> Voice {
+pub fn create_blank_voice (freq: f32) -> Voice {
   Voice {
     freq,
-    sample_rate,
     note: 0,
     enabled: false,
     end_time: 0.0,

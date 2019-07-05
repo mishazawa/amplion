@@ -10,10 +10,10 @@ pub struct Lfo {
 }
 
 impl Lfo {
-  pub fn new (freq: f32, sample_rate: i32) -> Self {
+  pub fn new (freq: f32) -> Self {
     Self {
-      form: Wavetable::new(Waves::SAW, sample_rate),
-      voice: create_blank_voice(freq, sample_rate)
+      form: Wavetable::new(Waves::SAW),
+      voice: create_blank_voice(freq)
     }
   }
   pub fn get_amp (&mut self) -> f32 {

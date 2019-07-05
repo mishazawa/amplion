@@ -1,5 +1,6 @@
 use portmidi::{MidiMessage};
 
+
 use crate::modules::{
   mixer::Mixer,
   envelope::Envelope,
@@ -9,12 +10,12 @@ pub struct Instrument {
   pub osc: Vec<Wavetable>,
   pub envelope: Envelope,
   pub polyphony: Mixer,
-  pub on_midi_event: fn(MidiMessage, &mut Mixer, f32, i32) -> ()
+  pub on_midi_event: fn(MidiMessage, &mut Mixer, f32) -> ()
 }
 
 impl Instrument {
   pub fn on_midi_message (&mut self, mess: MidiMessage, delta_time: f32) {
-    (self.on_midi_event)(mess, &mut self.polyphony, delta_time, self.osc[0].sample_rate());
+    (self.on_midi_event)(mess, &mut self.polyphony, delta_time);
   }
 
   pub fn get_amp (&mut self, delta_time: f32) -> f32 {

@@ -45,7 +45,6 @@ pub fn seq_demo (s: &mut Sequencer) {
     note: 89,
     freq: 440.0,
     phase: 0.0,
-    sample_rate: 44100,
     start_time: 0.0,
     end_time: 0.0,
     enabled: true
@@ -55,7 +54,6 @@ pub fn seq_demo (s: &mut Sequencer) {
     note: 53,
     freq: 440.0,
     phase: 0.0,
-    sample_rate: 44100,
     start_time: 0.0,
     end_time: 0.0,
     enabled: true
@@ -65,7 +63,6 @@ pub fn seq_demo (s: &mut Sequencer) {
     note: 93,
     freq: 440.0,
     phase: 0.0,
-    sample_rate: 44100,
     start_time: 0.0,
     end_time: 0.0,
     enabled: true
