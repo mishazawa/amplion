@@ -6,7 +6,7 @@ use std::thread;
 
 use crate::modules::{
   voice::Voice,
-  sequencer::{Sequencer, SEQ_LEN},
+  sequencer::{Sequencer, SEQ_LEN, tab_to_sequence},
 
 };
 
@@ -40,7 +40,7 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 
 
 pub fn seq_demo (s: &mut Sequencer) {
-  s.tempo(350.5);
+  s.tempo(110.5);
 
   s.add(String::from("sine"), Voice {
     note: 89,
@@ -72,17 +72,10 @@ pub fn seq_demo (s: &mut Sequencer) {
     enabled: true
   });
 
-  for n in 0..SEQ_LEN {
-    s.disable(String::from("sine"), n as u8);
-    s.disable(String::from("cosine"), n as u8);
-    if n % 2 == 0 {
-      s.enable(String::from("sine"), n as u8);
-    }
-    if n % 3 == 0 {
-      s.enable(String::from("cosine"), n as u8);
-    }
-    s.enable(String::from("asine"), n as u8);
-  }
+
+  tab_to_sequence(s, String::from("sine"),   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]);
+  tab_to_sequence(s, String::from("asine"),  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+  tab_to_sequence(s, String::from("cosine"), [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1]);
 }
 
 pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> Result<()> {

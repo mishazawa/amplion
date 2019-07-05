@@ -117,7 +117,7 @@ impl Sequencer {
         }
 
         thread::sleep(Duration::from_millis((60_000.0 / self.tempo) as u64));
-
+        println!("\n");
         for (_, track) in &self.tracks {
           if track.steps[self.pointer as usize] {
             midi_tx.send(misc::midi_note(track.voice.note, false)).unwrap();
@@ -126,6 +126,15 @@ impl Sequencer {
       } else {
         thread::sleep(Duration::from_millis(100));
       }
+    }
+  }
+}
+
+pub fn tab_to_sequence (seq: &mut Sequencer, key: String, arr: [u8; SEQ_LEN]) {
+  for n in 0..SEQ_LEN {
+    seq.disable(key.to_string(), n as u8);
+    if arr[n] != 0 {
+      seq.enable(key.to_string(), n as u8);
     }
   }
 }

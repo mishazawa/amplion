@@ -103,7 +103,7 @@ fn main() {
   let (midi_tx, midi_rx) = mpsc::channel();
 
   // synth setup
-  let n3 = Wavetable::new(Waves::SIN, sample_rate);
+  let n3 = Wavetable::new(Waves::NO, sample_rate);
   let mut env = Envelope::new();
 
   env.set_params(0.1, 0.4, 0.7, 0.2);
