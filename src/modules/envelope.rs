@@ -22,8 +22,8 @@ impl Default for Envelope {
 }
 
 impl Envelope {
-  pub fn new () -> Self {
-    Self {..Default::default()}
+  pub fn new (f: impl Fn(Self) -> Self) -> Self {
+    f(Self {..Default::default()})
   }
 
   pub fn is_stopped (&self, release_value: f32, time_elapsed: f32) -> bool {

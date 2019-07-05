@@ -13,18 +13,18 @@ use portmidi::{
   PortMidi
 };
 
-use std::clone::{ Clone };
-use std::sync::mpsc::{self, Sender};
+// use std::clone::{ Clone };
+use std::sync::mpsc::{ self };
 use std::thread;
 
 use modules::{
   mixer::Mixer,
   voice::Voice,
-  wavetable::Wavetable,
-  wavetable::Waves,
-  envelope::Envelope,
   timer::Timer,
-  sequencer::{Sequencer, SEQ_LEN}
+  envelope::Envelope,
+  wavetable::{ Wavetable, Waves },
+  sequencer::{ Sequencer },
+  instrument::{ Instrument }
 };
 
 use ui::{
@@ -87,6 +87,7 @@ fn on_midi_knob_event(mess: MidiMessage) {
   }
 }
 
+
 fn main() {
   // sound setup
   let device = cpal::default_output_device().expect("Failed to get default output device");
@@ -103,14 +104,23 @@ fn main() {
   let (midi_tx, midi_rx) = mpsc::channel();
 
   // synth setup
-  let n3 = Wavetable::new(Waves::NO, sample_rate);
-  let mut env = Envelope::new();
 
-  env.set_params(0.1, 0.4, 0.7, 0.2);
-  env.set_amps(0.8, 0.7);
+  let mut noise = Instrument {
+    polyphony: Mixer::new(),
+    osc: vec![
+      Wavetable::new(Waves::NO, sample_rate),
+      Wavetable::new(Waves::SQ, sample_rate),
+      Wavetable::new(Waves::SIN, sample_rate)
+    ],
+    envelope: Envelope::new(|mut env: Envelope| -> Envelope {
+      env.set_params(0.6, 0.4, 0.7, 1.2);
+      env.set_amps(0.8, 0.7);
+      env
+    }),
+    on_midi_event: on_midi_keyboard_event
+  };
 
   let mut timer = Timer::new();
-  let mut mixer = Mixer::new();
 
   // ui setup
   let ui: UiThread = UiThread::new();
@@ -129,11 +139,9 @@ fn main() {
   // midi thread
   #[allow(unreachable_code)]
   thread::spawn(move || {
-    // return;
+    midi::read_midi_ports(context, midi_tx.clone());
     // if let Err(e) = misc::play(midi_tx.clone(), false) {
     //   println!("{:?}", e);
-    // } else {
-      midi::read_midi_ports(context, midi_tx.clone());
     // }
   });
 
@@ -152,20 +160,21 @@ fn main() {
 
         // check midi message
         if let Ok(mess) = midi_rx.try_recv() {
-          on_midi_keyboard_event(mess, &mut mixer, timer.get_delta(), n3.sample_rate());
+          noise.on_midi_message(mess, timer.get_delta());
           on_midi_knob_event(mess);
           seq_tx.send(mess).unwrap();
         }
 
         for sample in buffer.chunks_mut(format.channels as usize) {
-          let amplitude = mixer.mix(&n3, &env, timer.get_delta());
+          let amplitude = noise.mix(timer.get_delta());
+
           for out in sample.iter_mut() {
             *out = amplitude;
           };
         }
 
         // release utilised voices (release phase envelope)
-        mixer.remove_unused(&env, timer.get_delta());
+        noise.remove_unused(timer.get_delta());
       },
       _ => (),
     }

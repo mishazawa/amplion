@@ -6,8 +6,7 @@ use std::thread;
 
 use crate::modules::{
   voice::Voice,
-  sequencer::{Sequencer, SEQ_LEN, tab_to_sequence},
-
+  sequencer::{Sequencer, tab_to_sequence},
 };
 
 pub static LEDS_TOP_ROW: [u8; 9] = [96, 97, 98, 99, 100, 101, 102, 103, 104];
@@ -40,7 +39,7 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 
 
 pub fn seq_demo (s: &mut Sequencer) {
-  s.tempo(110.5);
+  s.tempo(10.5);
 
   s.add(String::from("sine"), Voice {
     note: 89,
