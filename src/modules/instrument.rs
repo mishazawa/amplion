@@ -17,7 +17,7 @@ impl Instrument {
     (self.on_midi_event)(mess, &mut self.polyphony, delta_time, self.osc[0].sample_rate());
   }
 
-  pub fn mix (&mut self, delta_time: f32) -> f32 {
+  pub fn get_amp (&mut self, delta_time: f32) -> f32 {
 
     let mut amp = 0.0;
     for osc in self.osc.iter() {

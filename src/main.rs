@@ -24,7 +24,8 @@ use modules::{
   envelope::Envelope,
   wavetable::{ Wavetable, Waves },
   sequencer::{ Sequencer },
-  instrument::{ Instrument }
+  instrument::{ Instrument },
+  lfo::{ Lfo }
 };
 
 use ui::{
@@ -88,6 +89,10 @@ fn on_midi_knob_event(mess: MidiMessage) {
 }
 
 
+
+
+
+
 fn main() {
   // sound setup
   let device = cpal::default_output_device().expect("Failed to get default output device");
@@ -105,12 +110,11 @@ fn main() {
 
   // synth setup
 
-  let mut noise = Instrument {
+  let mut mel = Instrument {
     polyphony: Mixer::new(),
     osc: vec![
-      Wavetable::new(Waves::NO, sample_rate),
-      Wavetable::new(Waves::SQ, sample_rate),
-      Wavetable::new(Waves::SIN, sample_rate)
+      Wavetable::new(Waves::SIN, sample_rate),
+      Wavetable::new(Waves::TRI, sample_rate),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
       env.set_params(0.6, 0.4, 0.7, 1.2);
@@ -120,8 +124,22 @@ fn main() {
     on_midi_event: on_midi_keyboard_event
   };
 
-  let mut timer = Timer::new();
+  let mut noise = Instrument {
+    polyphony: Mixer::new(),
+    osc: vec![
+      Wavetable::new(Waves::NO, sample_rate),
+    ],
+    envelope: Envelope::new(|mut env: Envelope| -> Envelope {
+      env.set_params(0.6, 0.4, 0.7, 1.2);
+      env.set_amps(0.8, 0.7);
+      env
+    }),
+    on_midi_event: on_midi_keyboard_event
+  };
 
+
+  let mut timer = Timer::new();
+  let mut lfo = Lfo::new(0.03, sample_rate);
   // ui setup
   let ui: UiThread = UiThread::new();
   // let cursive_sender = ui.sender().clone();
@@ -160,21 +178,23 @@ fn main() {
 
         // check midi message
         if let Ok(mess) = midi_rx.try_recv() {
+
+          mel.on_midi_message(mess, timer.get_delta());
           noise.on_midi_message(mess, timer.get_delta());
           on_midi_knob_event(mess);
           seq_tx.send(mess).unwrap();
         }
 
         for sample in buffer.chunks_mut(format.channels as usize) {
-          let amplitude = noise.mix(timer.get_delta());
-
+          let amplitude = mel.get_amp(timer.get_delta());
+          let no_amplitude = noise.get_amp(timer.get_delta()) * 0.2;
           for out in sample.iter_mut() {
-            *out = amplitude;
+            *out = amplitude * lfo.get_amp() + no_amplitude;
           };
         }
 
         // release utilised voices (release phase envelope)
-        noise.remove_unused(timer.get_delta());
+        mel.remove_unused(timer.get_delta());
       },
       _ => (),
     }

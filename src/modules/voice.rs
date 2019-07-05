@@ -14,3 +14,16 @@ impl Voice {
     self.phase = (self.phase + self.freq) % self.sample_rate as f32;
   }
 }
+
+
+pub fn create_blank_voice (freq: f32, sample_rate: i32) -> Voice {
+  Voice {
+    freq,
+    sample_rate,
+    note: 0,
+    enabled: false,
+    end_time: 0.0,
+    phase: 0.0,
+    start_time: 0.0,
+  }
+}
