@@ -78,10 +78,10 @@ fn on_midi_knob_event(mess: MidiMessage) {
       println!("PD{:?}", mess.data1);
     }
     midi::KNOB_EVENT => {
-      println!("KE{:?}", mess.data1);
-      match mess.data1 {
-        _ => {}
-      }
+      // println!("KE{:?}", mess.data1);
+      // match mess.data1 {
+      //   _ => {}
+      // }
     },
     _ => {
       println!("{:?}", mess.status);

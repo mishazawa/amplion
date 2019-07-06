@@ -44,7 +44,7 @@ impl Sequencer {
       tempo: 110.0,
       tracks: HashMap::new(),
       pointer: 0,
-      playing: true,
+      playing: false,
       receiver,
       sender
     }
@@ -115,14 +115,15 @@ impl Sequencer {
             midi_tx.send(misc::midi_note(track.voice.note, true)).unwrap();
           }
         }
+        thread::sleep(Duration::from_millis(100));
 
-        thread::sleep(Duration::from_millis((60_000.0 / self.tempo) as u64));
         println!("\n");
         for (_, track) in &self.tracks {
           if track.steps[self.pointer as usize] {
             midi_tx.send(misc::midi_note(track.voice.note, false)).unwrap();
           }
         }
+        thread::sleep(Duration::from_millis((60_000.0 / self.tempo) as u64));
       } else {
         thread::sleep(Duration::from_millis(100));
       }

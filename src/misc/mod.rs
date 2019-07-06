@@ -39,7 +39,7 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 
 
 pub fn seq_demo (s: &mut Sequencer) {
-  s.tempo(10.5);
+  s.tempo(50.5);
 
   s.add(String::from("sine"), Voice {
     note: 89,
@@ -51,7 +51,7 @@ pub fn seq_demo (s: &mut Sequencer) {
   });
 
   s.add(String::from("cosine"), Voice {
-    note: 53,
+    note: 109,
     freq: 440.0,
     phase: 0.0,
     start_time: 0.0,
@@ -69,9 +69,9 @@ pub fn seq_demo (s: &mut Sequencer) {
   });
 
 
-  tab_to_sequence(s, String::from("sine"),   [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]);
-  tab_to_sequence(s, String::from("asine"),  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
-  tab_to_sequence(s, String::from("cosine"), [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1]);
+  tab_to_sequence(s, String::from("sine"),   [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
+  tab_to_sequence(s, String::from("asine"),  [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
+  tab_to_sequence(s, String::from("cosine"), [1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]);
 }
 
 pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> Result<()> {
