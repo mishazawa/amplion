@@ -3,10 +3,12 @@ use std::thread;
 use std::time::Duration;
 use std::sync::mpsc::{self, Sender, Receiver};
 use portmidi::{MidiMessage};
-use super::{
-  voice::Voice,
-  super::midi,
-  super::misc,
+use crate::{
+  modules::voice::Voice,
+  modules::timer::Timer,
+
+  midi,
+  misc,
 };
 
 
@@ -34,7 +36,8 @@ pub struct Sequencer {
   pointer: u8,
   playing: bool,
   receiver: Receiver<MidiMessage>,
-  pub sender: Sender<MidiMessage>
+  pub sender: Sender<MidiMessage>,
+  timer: Timer
 }
 
 impl Sequencer {
@@ -43,10 +46,11 @@ impl Sequencer {
     Self {
       tempo: 110.0,
       tracks: HashMap::new(),
-      pointer: 0,
+      pointer: (SEQ_LEN - 1) as u8,
       playing: false,
       receiver,
-      sender
+      sender,
+      timer: Timer::new()
     }
   }
 
@@ -82,6 +86,9 @@ impl Sequencer {
 
   pub fn play (&mut self, state: bool) {
     self.playing = state;
+    if state == false {
+      self.pointer = 0;
+    }
   }
 
   pub fn next_step (&mut self) {
@@ -94,40 +101,64 @@ impl Sequencer {
 
   pub fn run (&mut self, midi_tx: Sender<MidiMessage>) {
     loop {
+      self.get_midi_event(&midi_tx);
+
+      let tempo_time = Duration::from_millis((60_000.0 / self.tempo) as u64);
+
+      match self.playing {
+        false => Sequencer::idle_state(),
+        true => {
+          let spend_time = Duration::from_millis(self.timer.get_delta() as u64);
+
+          if spend_time >= tempo_time {
+            self.playing_state_off(&midi_tx);
+            self.timer.flush();
+            self.next_step();
+            self.playing_state_on(&midi_tx);
+          }
+
+          self.timer.tick();
+        },
+      }
+    }
+  }
+
+  fn get_midi_event (&mut self, midi_tx: &Sender<MidiMessage>) {
       if let Ok(mess) = self.receiver.try_recv() {
         match mess.status {
           midi::KNOB_EVENT => {
             match mess.data1 {
               midi::MIDI_MAP_PLAY => self.play(true),
-              midi::MIDI_MAP_STOP => self.play(false),
+              midi::MIDI_MAP_STOP => {
+                self.play(false);
+                self.playing_state_off(&midi_tx);
+              },
               _ => ()
             }
           },
           _ => ()
         }
       }
+  }
 
-      if self.playing == true {
-        self.next_step();
-
-        for (_, track) in &self.tracks {
-          if track.steps[self.pointer as usize] {
-            midi_tx.send(misc::midi_note(track.voice.note, true)).unwrap();
-          }
-        }
-        thread::sleep(Duration::from_millis(100));
-
-        println!("\n");
-        for (_, track) in &self.tracks {
-          if track.steps[self.pointer as usize] {
-            midi_tx.send(misc::midi_note(track.voice.note, false)).unwrap();
-          }
-        }
-        thread::sleep(Duration::from_millis((60_000.0 / self.tempo) as u64));
-      } else {
-        thread::sleep(Duration::from_millis(100));
+  fn playing_state_on (&self, midi_tx: &Sender<MidiMessage>) {
+    for (_, track) in &self.tracks {
+      if track.steps[self.pointer as usize] {
+        midi_tx.send(misc::midi_note(track.voice.note, true)).unwrap();
       }
     }
+  }
+
+  fn playing_state_off (&self, midi_tx: &Sender<MidiMessage>) {
+    for (_, track) in &self.tracks {
+      if track.steps[self.pointer as usize] {
+        midi_tx.send(misc::midi_note(track.voice.note, false)).unwrap();
+      }
+    }
+  }
+
+  fn idle_state () {
+    thread::sleep(Duration::from_millis(100));
   }
 }
 

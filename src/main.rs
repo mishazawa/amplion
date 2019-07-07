@@ -84,7 +84,7 @@ fn on_midi_knob_event(mess: MidiMessage) {
       // }
     },
     _ => {
-      println!("{:?}", mess.status);
+      // println!("{:?}", mess.status);
     }
   }
 }
@@ -144,6 +144,16 @@ fn main() {
   // ui thread
   // thread::spawn(move || UiThread::run(cursive_sender));
 
+  // midi thread
+  let keyboard_midi_tx = midi_tx.clone();
+  #[allow(unreachable_code)]
+  thread::spawn(move || {
+
+    midi::read_midi_ports(context, keyboard_midi_tx);
+    // if let Err(e) = misc::play(midi_tx.clone(), false) {
+    //   println!("{:?}", e);
+    // }
+  });
 
   let mut seq = Sequencer::new();
   seq.set_params(misc::seq_demo);
@@ -151,14 +161,6 @@ fn main() {
   let seq_midi_tx = midi_tx.clone();
   thread::spawn(move || seq.run(seq_midi_tx));
 
-  // midi thread
-  #[allow(unreachable_code)]
-  thread::spawn(move || {
-    midi::read_midi_ports(context, midi_tx.clone());
-    // if let Err(e) = misc::play(midi_tx.clone(), false) {
-    //   println!("{:?}", e);
-    // }
-  });
 
   // sound thread
   event_loop.run(move |_, data| {
@@ -175,7 +177,6 @@ fn main() {
 
         // check midi message
         if let Ok(mess) = midi_rx.try_recv() {
-
           mel.on_midi_message(mess, timer.get_delta());
           noise.on_midi_message(mess, timer.get_delta());
           on_midi_knob_event(mess);
@@ -186,7 +187,7 @@ fn main() {
           let amplitude = mel.get_amp(timer.get_delta());
           let no_amplitude = noise.get_amp(timer.get_delta()) * 0.2;
           for out in sample.iter_mut() {
-            *out = amplitude * lfo.get_amp() + no_amplitude;
+            *out = amplitude + no_amplitude * lfo.get_amp();
           };
         }
 

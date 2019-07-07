@@ -30,10 +30,14 @@ impl Timer {
     self.delta.as_millis() as f32
   }
 
+  pub fn flush (&mut self) {
+    self.time = SystemTime::now();
+    self.delta = Duration::new(0, 0);
+  }
+
   fn reset (&mut self) {
     if self.get_delta() == std::f32::INFINITY {
-      self.time = SystemTime::now();
-      self.delta = Duration::new(0, 0);
+      self.flush();
     }
   }
 }
