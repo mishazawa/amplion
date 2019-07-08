@@ -24,7 +24,7 @@ pub static MELODY: [(u8, u32); 42] = [
   ];
 
 
-const PLAY_TIME: u64 = 400;
+const PLAY_TIME: u64 = 1000;
 
 const PAUSE_TIME: u64 = 100;
 
@@ -78,31 +78,25 @@ pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> Result<()> {
   for &(note, dur) in MELODY.iter().cycle() {
 
     let note1_on = midi_note(note, true);
-    let note2_on = midi_note(note - 7, true);
-
 
     if verbose {
-      println!("on -> {}, {}", note1_on, note2_on);
+      println!("on -> {}", note1_on);
     }
 
     tx.send(note1_on).unwrap();
     thread::sleep(Duration::from_millis(dur as u64 * PLAY_TIME));
 
-    tx.send(note2_on).unwrap();
-    thread::sleep(Duration::from_millis(dur as u64 * PLAY_TIME));
-
     let note1_off = midi_note(note, false);
-    let note2_off = midi_note(note - 7, false);
 
     if verbose {
-      println!("off -> {}, {}", note1_off, note2_off);
+      println!("off -> {}", note1_off);
     }
 
     tx.send(note1_off).unwrap();
-    tx.send(note2_off).unwrap();
+
 
     // short pause
-    thread::sleep(Duration::from_millis(PAUSE_TIME));
+    thread::sleep(Duration::from_millis(PLAY_TIME));
   }
   Ok(())
 }

@@ -7,6 +7,7 @@ pub struct Envelope {
   attack_time: f32,
   decay_time: f32,
   release_time: f32,
+  sustain_time: f32, // plucked voices
 }
 
 impl Default for Envelope {
@@ -17,6 +18,7 @@ impl Default for Envelope {
       release_time: 0.4,
       sustain_amp: 0.5,
       max_amp: 1.0,
+      sustain_time: -1.0
     }
   }
 }
@@ -30,13 +32,19 @@ impl Envelope {
     time_elapsed - release_value > self.release_time * 1000.0
   }
 
-  pub fn get_amp_voice (&self, time_elapsed: f32, voice: &Voice) -> f32 {
+  pub fn get_amp_voice (&self, time_elapsed: f32, voice: &mut Voice) -> f32 {
     let mut amp = 0.0;
     let time = time_elapsed - voice.start_time;
 
     let attack = self.attack_time * 1000.0;
     let decay = self.decay_time * 1000.0;
     let release = self.release_time * 1000.0;
+
+    if voice.enabled && self.is_plucked(time) {
+      voice.end_time = time_elapsed;
+      voice.enabled = false;
+    }
+
 
     if voice.enabled {
       if time <= attack {
@@ -60,6 +68,14 @@ impl Envelope {
     }
 
     amp
+  }
+
+  fn is_plucked (&self, time: f32) -> bool {
+    self.sustain_time > 0.0 && time >= self.sustain_time * 1000.0
+  }
+
+  pub fn set_plucked (&mut self, sustain: f32) {
+    self.sustain_time = sustain;
   }
 
   pub fn set_params (&mut self, a: f32, d: f32, s: f32, r: f32) {

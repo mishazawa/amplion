@@ -35,7 +35,7 @@ impl <'a> Mixer {
     let mut amplitude = 0.0;
     for (_, voice) in &mut self.voices {
       voice.next_phase();
-      amplitude += env.get_amp_voice(time_elapsed, &voice) * osc.get_value(voice.phase);
+      amplitude += env.get_amp_voice(time_elapsed, voice) * osc.get_value(voice.phase);
     }
     Mixer::amplify(amplitude.tanh(), 1.0)
   }

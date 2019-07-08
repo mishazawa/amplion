@@ -114,8 +114,9 @@ fn main() {
       Wavetable::new(Waves::TRI),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
-      env.set_params(0.6, 0.4, 0.7, 1.2);
+      env.set_params(0.6, 0.4, 0.7, 0.5);
       env.set_amps(0.8, 0.7);
+      env.set_plucked(0.05);
       env
     }),
     on_midi_event: on_midi_keyboard_event
@@ -149,10 +150,10 @@ fn main() {
   #[allow(unreachable_code)]
   thread::spawn(move || {
 
-    midi::read_midi_ports(context, keyboard_midi_tx);
-    // if let Err(e) = misc::play(midi_tx.clone(), false) {
+    // if let Err(e) = misc::play(keyboard_midi_tx, false) {
     //   println!("{:?}", e);
     // }
+    midi::read_midi_ports(context, keyboard_midi_tx);
   });
 
   let mut seq = Sequencer::new();
