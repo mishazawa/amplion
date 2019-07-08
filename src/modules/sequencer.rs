@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::thread;
+
 use std::time::Duration;
 use std::sync::mpsc::{self, Sender, Receiver};
 use portmidi::{MidiMessage};
@@ -84,10 +84,15 @@ impl Sequencer {
     }
   }
 
-  pub fn play (&mut self, state: bool) {
-    self.playing = state;
-    if state == false {
-      self.pointer = 0;
+  pub fn play (&mut self, tx: Option<&Sender<MidiMessage>>) {
+    if let Some(midi_tx) = tx {
+      if self.playing == true {
+        self.playing = false;
+        self.playing_state_off(&midi_tx);
+        self.reset_pointer();
+      }
+    } else {
+      self.playing = true;
     }
   }
 
@@ -105,20 +110,17 @@ impl Sequencer {
 
       let tempo_time = Duration::from_millis((60_000.0 / self.tempo) as u64);
 
-      match self.playing {
-        false => Sequencer::idle_state(),
-        true => {
-          let spend_time = Duration::from_millis(self.timer.get_delta() as u64);
+      if self.playing {
+        let spend_time = Duration::from_millis(self.timer.get_delta() as u64);
 
-          if spend_time >= tempo_time {
-            self.playing_state_off(&midi_tx);
-            self.timer.flush();
-            self.next_step();
-            self.playing_state_on(&midi_tx);
-          }
+        if spend_time >= tempo_time {
+          self.playing_state_off(&midi_tx);
+          self.timer.flush();
+          self.next_step();
+          self.playing_state_on(&midi_tx);
+        }
 
-          self.timer.tick();
-        },
+        self.timer.tick();
       }
     }
   }
@@ -128,11 +130,8 @@ impl Sequencer {
         match mess.status {
           midi::KNOB_EVENT => {
             match mess.data1 {
-              midi::MIDI_MAP_PLAY => self.play(true),
-              midi::MIDI_MAP_STOP => {
-                self.play(false);
-                self.playing_state_off(&midi_tx);
-              },
+              midi::MIDI_MAP_STOP => self.play(Some(&midi_tx)),
+              midi::MIDI_MAP_PLAY => self.play(None),
               _ => ()
             }
           },
@@ -157,8 +156,8 @@ impl Sequencer {
     }
   }
 
-  fn idle_state () {
-    thread::sleep(Duration::from_millis(100));
+  fn reset_pointer (&mut self) {
+    self.pointer = (SEQ_LEN - 1) as u8;
   }
 }
 
