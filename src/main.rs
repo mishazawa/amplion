@@ -48,8 +48,10 @@ fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32
     midi::KEY_DEPRESS => {
       match mixer.voices.get_mut(&mess.data1) {
         Some(voice) => {
-          voice.end_time = delta_time;
-          voice.enabled = false;
+          if voice.enabled {
+            voice.end_time = delta_time;
+            voice.enabled = false;
+          }
         },
         None => println!("Midi {} is not pressed.", &mess.data1)
       }

@@ -47,7 +47,7 @@ impl Sequencer {
       tempo: 110.0,
       tracks: HashMap::new(),
       pointer: (SEQ_LEN - 1) as u8,
-      playing: false,
+      playing: true,
       receiver,
       sender,
       timer: Timer::new()
@@ -143,6 +143,7 @@ impl Sequencer {
   fn playing_state_on (&self, midi_tx: &Sender<MidiMessage>) {
     for (_, track) in &self.tracks {
       if track.steps[self.pointer as usize] {
+        // println!("-> on {:?}", self.pointer);
         midi_tx.send(misc::midi_note(track.voice.note, true)).unwrap();
       }
     }
@@ -151,6 +152,8 @@ impl Sequencer {
   fn playing_state_off (&self, midi_tx: &Sender<MidiMessage>) {
     for (_, track) in &self.tracks {
       if track.steps[self.pointer as usize] {
+        // println!("-> off {:?}", self.pointer);
+
         midi_tx.send(misc::midi_note(track.voice.note, false)).unwrap();
       }
     }
