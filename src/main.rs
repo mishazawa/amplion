@@ -27,7 +27,8 @@ use modules::{
   wavetable::{ Wavetable, Waves },
   sequencer::{ Sequencer },
   instrument::{ Instrument },
-  lfo::{ Lfo }
+  lfo::{ Lfo },
+  panorama::{ Panorama }
 };
 
 use ui::{
@@ -140,6 +141,9 @@ fn main() {
 
   let mut timer = Timer::new();
   let mut lfo = Lfo::new(0.03);
+
+
+  let pan = Panorama::new();
   // ui setup
   let ui: UiThread = UiThread::new();
   // let cursive_sender = ui.sender().clone();
@@ -189,9 +193,11 @@ fn main() {
         for sample in buffer.chunks_mut(format.channels as usize) {
           let amplitude = mel.get_amp(timer.get_delta());
           let no_amplitude = noise.get_amp(timer.get_delta()) * 0.2;
-          for out in sample.iter_mut() {
-            *out = amplitude + no_amplitude * lfo.get_amp();
-          };
+
+          let a = amplitude + no_amplitude * lfo.get_amp();
+
+          sample[0] = pan.l(a);
+          sample[1] = pan.r(a);
         }
 
         // release utilised voices (release phase envelope)
