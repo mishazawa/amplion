@@ -29,6 +29,10 @@ const PLAY_TIME: u64 = 1000;
 const PAUSE_TIME: u64 = 100;
 
 
+pub fn clear_terminal () {
+  print!("{}[2J", 27 as char);
+}
+
 pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
   MidiMessage {
     status: (if trigger {0x90} else {0x80}) + CHANNEL,
@@ -39,7 +43,7 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 
 
 pub fn seq_demo (s: &mut Sequencer) {
-  s.tempo(110.0);
+  s.tempo(310.0);
 
   s.add(String::from("sine"), Voice {
     note: 63,

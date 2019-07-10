@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-
+use std::fmt::{Debug, Formatter, Result};
 use std::time::Duration;
 use std::sync::mpsc::{self, Sender, Receiver};
 use portmidi::{MidiMessage};
@@ -14,7 +14,6 @@ use crate::{
 
 pub const SEQ_LEN: usize = 16;
 
-#[derive(Debug)]
 struct Track {
   voice: Voice,
   steps: [bool; SEQ_LEN]
@@ -29,7 +28,15 @@ impl Track {
   }
 }
 
-#[derive(Debug)]
+impl Debug for Track {
+  fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    for track in self.steps.iter() {
+      write!(f, "{}", if *track {"x"} else {"_"})?;
+    }
+    write!(f, "")
+  }
+}
+
 pub struct Sequencer {
   tempo: f32,
   tracks: HashMap<String, Track>,
@@ -39,6 +46,19 @@ pub struct Sequencer {
   pub sender: Sender<MidiMessage>,
   timer: Timer
 }
+
+impl Debug for Sequencer {
+  fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+      misc::clear_terminal();
+      write!(f, "tempo: {}\n", self.tempo)?;
+      for track in self.tracks.iter() {
+        write!(f, "|{:?}|  {}\n", track.1, track.0)?;
+
+      }
+      write!(f, "{:?}", format_args!("{:ident$}=\n", "", ident=(self.pointer + 1) as usize))
+  }
+}
+
 
 impl Sequencer {
   pub fn new () -> Self {
@@ -98,6 +118,7 @@ impl Sequencer {
 
   pub fn next_step (&mut self) {
     self.pointer = (self.pointer + 1) % SEQ_LEN as u8;
+    println!("{:?}", self);
   }
 
   pub fn set_params (&mut self, f: impl Fn(&mut Sequencer) -> ()) {
