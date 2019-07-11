@@ -194,10 +194,11 @@ fn main() {
           let amplitude = mel.get_amp(timer.get_delta());
           let no_amplitude = noise.get_amp(timer.get_delta()) * 0.2;
 
-          let a = amplitude + no_amplitude * lfo.get_amp();
+          let [left, right] = pan.apply(amplitude + no_amplitude * lfo.get_amp());
 
-          sample[0] = pan.l(a);
-          sample[1] = pan.r(a);
+          sample[0] = left;
+          sample[1] = right;
+
         }
 
         // release utilised voices (release phase envelope)
