@@ -6,7 +6,7 @@ use std::thread;
 
 use crate::modules::{
   voice::Voice,
-  sequencer::{Sequencer, tab_to_sequence},
+  sequencer::{Sequencer, tab_to_sequence, string_to_sequence},
 };
 
 pub static LEDS_TOP_ROW: [u8; 9] = [96, 97, 98, 99, 100, 101, 102, 103, 104];
@@ -43,9 +43,9 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 
 
 pub fn seq_demo (s: &mut Sequencer) {
-  s.tempo(310.0);
+  s.tempo(810.0);
 
-  s.add(String::from("sine"), Voice {
+  s.add(String::from("AAA"), Voice {
     note: 63,
     freq: 440.0,
     phase: 0.0,
@@ -54,7 +54,7 @@ pub fn seq_demo (s: &mut Sequencer) {
     enabled: true
   });
 
-  s.add(String::from("cosine"), Voice {
+  s.add(String::from("AAB"), Voice {
     note: 65,
     freq: 440.0,
     phase: 0.0,
@@ -63,7 +63,7 @@ pub fn seq_demo (s: &mut Sequencer) {
     enabled: true
   });
 
-  s.add(String::from("asine"), Voice {
+  s.add(String::from("ABB"), Voice {
     note: 61,
     freq: 440.0,
     phase: 0.0,
@@ -72,10 +72,22 @@ pub fn seq_demo (s: &mut Sequencer) {
     enabled: true
   });
 
+  s.add(String::from("BBB"), Voice {
+    note: 34,
+    freq: 440.0,
+    phase: 0.0,
+    start_time: 0.0,
+    end_time: 0.0,
+    enabled: true
+  });
 
-  tab_to_sequence(s, String::from("sine"),   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-  tab_to_sequence(s, String::from("cosine"), [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-  tab_to_sequence(s, String::from("asine"),  [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]);
+  string_to_sequence(s, String::from("AAA"), "1111000000000011".to_string());
+  string_to_sequence(s, String::from("AAB"), "0000111100001100".to_string());
+  string_to_sequence(s, String::from("ABB"), "1111000011110000".to_string());
+  string_to_sequence(s, String::from("BBB"), "1000000010000000".to_string());
+  // tab_to_sequence(s, String::from("sine"),   [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  // tab_to_sequence(s, String::from("cosine"), [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  // tab_to_sequence(s, String::from("asine"),  [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]);
 }
 
 pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> Result<()> {

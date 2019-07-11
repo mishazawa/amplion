@@ -4,8 +4,29 @@ use portmidi::{PortMidi, MidiMessage};
 use std::thread;
 use std::sync::mpsc::{Sender};
 use std::time::{Duration};
+use std::collections::{HashMap};
 
 const BUF_LEN: usize = 1024;
+const MIDI_OCTAVES_START: usize = 21;
+const MIDI_OCTAVES_END: usize = 108;
+
+
+#[derive(Debug)]
+pub struct MidiFreqTable(HashMap<u8, f32>);
+impl MidiFreqTable {
+  pub fn new () -> Self {
+    let mut notes = HashMap::new();
+    for n in MIDI_OCTAVES_START..MIDI_OCTAVES_END {
+      notes.insert(n as u8, midi_to_freq(n as u8));
+    }
+    Self(notes)
+  }
+
+  pub fn lookup (&self, key: u8) -> f32 {
+    *self.0.get(&key).unwrap()
+  }
+}
+
 
 pub fn midi_to_freq (key: u8) -> f32 {
   (440.0 * (2.0f32).powf((key as f32 - 69.0) / 12.0)).floor()

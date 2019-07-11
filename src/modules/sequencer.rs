@@ -193,3 +193,14 @@ pub fn tab_to_sequence (seq: &mut Sequencer, key: String, arr: [u8; SEQ_LEN]) {
     }
   }
 }
+
+
+pub fn string_to_sequence (seq: &mut Sequencer, key: String, arr: String) {
+  for (i, n) in arr.chars().enumerate() {
+    if n == '0' {
+      seq.disable(key.to_string(), i as u8);
+    } else {
+      seq.enable(key.to_string(), i as u8);
+    }
+  }
+}

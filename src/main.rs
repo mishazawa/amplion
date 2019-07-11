@@ -119,7 +119,7 @@ fn main() {
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
       env.set_params(0.6, 0.4, 0.7, 0.5);
       env.set_amps(0.8, 0.7);
-      env.set_plucked(0.05);
+      // env.set_plucked(0.05);
       env
     }),
     on_midi_event: on_midi_keyboard_event
