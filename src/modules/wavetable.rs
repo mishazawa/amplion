@@ -2,7 +2,7 @@
 
 use core::f32::consts::PI;
 use rand;
-
+use std::collections::{HashMap};
 use crate::{
   SAMPLE_RATE,
   modules::envelope::{Envelope}
@@ -107,6 +107,7 @@ fn sum () -> f32 { 0.0 }
 #[derive(Debug)]
 struct Instrument {
   voices: Vec<Osc>,
+  frequencies: Vec<f32>,
   time: Time,
   // effects: Vec<Effect>,
   envelope: Envelope
@@ -116,12 +117,27 @@ impl Instrument {
   fn new (f: impl Fn(Self) -> Self) -> Self {
     f(Self {
       voices: vec![],
+      frequencies: vec![],
       time: Time { end_time: 0.0, start_time: 0.0 },
       envelope: Envelope::new(|e| e)
     })
   }
-  fn play (&self) {
 
+  fn play (&mut self, _time: f32) -> f32 {
+    self.sum()// + self.envelope.get_amp_voice(time, )
+  }
+
+  fn sum (&mut self) -> f32 {
+    let mut amplitude = 0.0;
+
+    for (i, freq) in &mut self.frequencies.iter().enumerate() {
+      let voice = self.voices.get_mut(i).unwrap();
+      voice.next_phase(*freq);
+
+      amplitude += voice.table.get(voice.phase);
+    }
+
+    amplitude.tanh()
   }
 }
 
