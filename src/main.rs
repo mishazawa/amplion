@@ -6,7 +6,7 @@ mod midi;
 mod misc;
 mod ui;
 
-pub static SAMPLE_RATE: i32 = 44_100;
+pub const SAMPLE_RATE: i32 = 44_100;
 // pub static SAMPLE_RATE: i32 = 22_050;
 // pub static SAMPLE_RATE: i32 = 11_025;
 
@@ -28,8 +28,10 @@ use modules::{
   sequencer::{ Sequencer },
   instrument::{ Instrument },
   lfo::{ Lfo },
-  panorama::{ Panorama }
+  panorama::{ Panorama },
 };
+
+
 
 use ui::{
   UiThread,
