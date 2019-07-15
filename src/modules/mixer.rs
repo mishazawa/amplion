@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::{
   voice::Voice,
   envelope::Envelope,
-  wavetable::Wavetable
+  wavetable::Osc
 };
 
 
@@ -31,11 +31,12 @@ impl <'a> Mixer {
     for empty in empties { self.voices.remove(&empty); }
   }
 
-  pub fn mix (&mut self, osc: &Wavetable, env: &Envelope, time_elapsed: f32) -> f32 {
+  pub fn mix (&mut self, osc: &Osc, env: &Envelope, time_elapsed: f32) -> f32 {
     let mut amplitude = 0.0;
     for (_, voice) in &mut self.voices {
-      voice.next_phase();
-      amplitude += env.get_amp_voice(time_elapsed, voice) * osc.get_value(voice.phase);
+      voice.osc.next_phase(voice.freq);
+
+      amplitude += env.get_amp_voice(time_elapsed, voice) * voice.osc.get_value();
     }
     Mixer::amplify(amplitude.tanh(), 1.0)
   }

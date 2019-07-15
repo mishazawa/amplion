@@ -5,8 +5,8 @@ use std::sync::mpsc;
 use std::thread;
 
 use crate::modules::{
-  voice::Voice,
-  sequencer::{Sequencer, tab_to_sequence, string_to_sequence},
+  voice::{use_voice},
+  sequencer::{Sequencer, string_to_sequence},
 };
 
 pub static LEDS_TOP_ROW: [u8; 9] = [96, 97, 98, 99, 100, 101, 102, 103, 104];
@@ -41,45 +41,13 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
   }
 }
 
-
 pub fn seq_demo (s: &mut Sequencer) {
-  s.tempo(810.0);
+  s.tempo(100.0);
 
-  s.add(String::from("AAA"), Voice {
-    note: 63,
-    freq: 440.0,
-    phase: 0.0,
-    start_time: 0.0,
-    end_time: 0.0,
-    enabled: true
-  });
-
-  s.add(String::from("AAB"), Voice {
-    note: 65,
-    freq: 440.0,
-    phase: 0.0,
-    start_time: 0.0,
-    end_time: 0.0,
-    enabled: true
-  });
-
-  s.add(String::from("ABB"), Voice {
-    note: 61,
-    freq: 440.0,
-    phase: 0.0,
-    start_time: 0.0,
-    end_time: 0.0,
-    enabled: true
-  });
-
-  s.add(String::from("BBB"), Voice {
-    note: 34,
-    freq: 440.0,
-    phase: 0.0,
-    start_time: 0.0,
-    end_time: 0.0,
-    enabled: true
-  });
+  s.add(String::from("AAA"), use_voice(63));
+  s.add(String::from("AAB"), use_voice(65));
+  s.add(String::from("ABB"), use_voice(61));
+  s.add(String::from("BBB"), use_voice(34));
 
   string_to_sequence(s, String::from("AAA"), "1111000000000011".to_string());
   string_to_sequence(s, String::from("AAB"), "0000111100001100".to_string());

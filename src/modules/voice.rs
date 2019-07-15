@@ -1,29 +1,27 @@
-use crate::{SAMPLE_RATE};
+use crate::modules::wavetable::{Osc, Waves};
+use crate::midi::{midi_to_freq};
+use crate::{sine};
+
 
 #[derive(Debug)]
 pub struct Voice {
-  pub note: u8,
   pub enabled: bool,
-  pub end_time: f32,
-  pub phase: f32,
   pub start_time: f32,
+  pub end_time: f32,
+
+  pub note: u8,
   pub freq: f32,
-}
-
-impl Voice {
-  pub fn next_phase (&mut self) {
-    self.phase = (self.phase + self.freq) % SAMPLE_RATE as f32;
-  }
+  pub osc: Osc,
 }
 
 
-pub fn create_blank_voice (freq: f32) -> Voice {
+pub fn use_voice (note: u8) -> Voice {
   Voice {
-    freq,
-    note: 0,
-    enabled: false,
-    end_time: 0.0,
-    phase: 0.0,
+    note,
+    freq: midi_to_freq(note),
     start_time: 0.0,
+    end_time: 0.0,
+    enabled: true,
+    osc: sine!()
   }
 }

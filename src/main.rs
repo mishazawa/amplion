@@ -21,17 +21,15 @@ use std::thread;
 
 use modules::{
   mixer::Mixer,
-  voice::Voice,
+  voice::{Voice},
   timer::Timer,
   envelope::Envelope,
-  wavetable::{ Wavetable, Waves },
+  wavetable::{ Waves, Osc },
   sequencer::{ Sequencer },
   instrument::{ Instrument },
   lfo::{ Lfo },
   panorama::{ Panorama },
 };
-
-
 
 use ui::{
   UiThread,
@@ -64,10 +62,10 @@ fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32
       mixer.add(Voice {
         note: mess.data1,
         freq: midi::midi_to_freq(mess.data1),
-        phase: 0.0,
         start_time: delta_time,
         end_time: 0.0,
-        enabled: true
+        enabled: true,
+        osc: sine!(),
       });
     },
     _ => ()
@@ -94,7 +92,6 @@ fn on_midi_knob_event(mess: MidiMessage) {
   }
 }
 
-
 fn main() {
   // sound setup
   let device = cpal::default_output_device().expect("Failed to get default output device");
@@ -115,8 +112,8 @@ fn main() {
   let mut mel = Instrument {
     polyphony: Mixer::new(),
     osc: vec![
-      Wavetable::new(Waves::SIN),
-      Wavetable::new(Waves::TRI),
+      sine!(),
+      triangle!(),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
       env.set_params(0.6, 0.4, 0.7, 0.5);
@@ -130,7 +127,7 @@ fn main() {
   let mut noise = Instrument {
     polyphony: Mixer::new(),
     osc: vec![
-      Wavetable::new(Waves::NO),
+      noise!(),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
       env.set_params(0.6, 0.4, 0.7, 1.2);

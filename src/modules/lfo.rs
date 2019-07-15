@@ -1,23 +1,24 @@
 use crate::modules::{
-  wavetable::{Wavetable, Waves},
-  voice::{Voice, create_blank_voice}
+  wavetable::{Osc, Waves}
 };
 
 
+use crate::{saw};
+
 pub struct Lfo {
-  form: Wavetable,
-  voice: Voice,
+  form: Osc,
+  freq: f32,
 }
 
 impl Lfo {
   pub fn new (freq: f32) -> Self {
     Self {
-      form: Wavetable::new(Waves::SAW),
-      voice: create_blank_voice(freq)
+      form: saw!(),
+      freq
     }
   }
   pub fn get_amp (&mut self) -> f32 {
-    self.voice.next_phase();
-    self.form.get_value(self.voice.phase)
+    self.form.next_phase(self.freq);
+    self.form.get_value()
   }
 }

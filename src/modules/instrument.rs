@@ -4,10 +4,11 @@ use portmidi::{MidiMessage};
 use crate::modules::{
   mixer::Mixer,
   envelope::Envelope,
-  wavetable::{ Wavetable},
+  wavetable::{Osc},
 };
+
 pub struct Instrument {
-  pub osc: Vec<Wavetable>,
+  pub osc: Vec<Osc>,
   pub envelope: Envelope,
   pub polyphony: Mixer,
   pub on_midi_event: fn(MidiMessage, &mut Mixer, f32) -> ()
