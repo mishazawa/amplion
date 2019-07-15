@@ -22,8 +22,8 @@ impl Instrument {
   pub fn get_amp (&mut self, delta_time: f32) -> f32 {
 
     let mut amp = 0.0;
-    for osc in self.osc.iter() {
-      amp += self.polyphony.mix(&osc, &self.envelope, delta_time);
+    for _ in self.osc.iter() {
+      amp += self.polyphony.mix(&self.envelope, delta_time);
     }
 
     (amp / self.osc.len() as f32).tanh()

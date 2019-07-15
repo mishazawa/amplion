@@ -1,4 +1,5 @@
 use std::time::{Duration, SystemTime};
+
 #[derive(Debug)]
 pub struct Timer {
   time: SystemTime,

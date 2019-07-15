@@ -4,7 +4,6 @@ use std::time::Duration;
 use std::sync::mpsc::{self, Sender, Receiver};
 use portmidi::{MidiMessage};
 use crate::{
-  modules::voice::Voice,
   modules::timer::Timer,
 
   midi,
@@ -14,15 +13,15 @@ use crate::{
 
 pub const SEQ_LEN: usize = 16;
 
-struct Track {
-  voice: Voice,
+pub struct Track {
+  note: u8,
   steps: [bool; SEQ_LEN]
 }
 
 impl Track {
-  fn new (voice: Voice) -> Self {
+  fn new (note: u8) -> Self {
     Self {
-      voice,
+      note,
       steps: [false; SEQ_LEN]
     }
   }
@@ -74,8 +73,8 @@ impl Sequencer {
     }
   }
 
-  pub fn add (&mut self, identifier: String, voice: Voice) {
-    self.tracks.insert(identifier, Track::new(voice));
+  pub fn add (&mut self, identifier: String, note: u8) {
+    self.tracks.insert(identifier, Track::new(note));
   }
 
   pub fn tempo (&mut self, tempo: f32) {
@@ -146,6 +145,10 @@ impl Sequencer {
     }
   }
 
+  pub fn get_tracks (&self) -> &HashMap<String, Track> {
+    &self.tracks
+  }
+
   fn get_midi_event (&mut self, midi_tx: &Sender<MidiMessage>) {
       if let Ok(mess) = self.receiver.try_recv() {
         match mess.status {
@@ -165,7 +168,7 @@ impl Sequencer {
     for (_, track) in &self.tracks {
       if track.steps[self.pointer as usize] {
         // println!("-> on {:?}", self.pointer);
-        midi_tx.send(misc::midi_note(track.voice.note, true)).unwrap();
+        midi_tx.send(misc::midi_note(track.note, true)).unwrap();
       }
     }
   }
@@ -175,7 +178,7 @@ impl Sequencer {
       if track.steps[self.pointer as usize] {
         // println!("-> off {:?}", self.pointer);
 
-        midi_tx.send(misc::midi_note(track.voice.note, false)).unwrap();
+        midi_tx.send(misc::midi_note(track.note, false)).unwrap();
       }
     }
   }

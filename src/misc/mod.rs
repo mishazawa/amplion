@@ -5,7 +5,6 @@ use std::sync::mpsc;
 use std::thread;
 
 use crate::modules::{
-  voice::{use_voice},
   sequencer::{Sequencer, string_to_sequence},
 };
 
@@ -44,10 +43,10 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 pub fn seq_demo (s: &mut Sequencer) {
   s.tempo(100.0);
 
-  s.add(String::from("AAA"), use_voice(63));
-  s.add(String::from("AAB"), use_voice(65));
-  s.add(String::from("ABB"), use_voice(61));
-  s.add(String::from("BBB"), use_voice(34));
+  s.add(String::from("AAA"), 63);
+  s.add(String::from("AAB"), 65);
+  s.add(String::from("ABB"), 61);
+  s.add(String::from("BBB"), 34);
 
   string_to_sequence(s, String::from("AAA"), "1111000000000011".to_string());
   string_to_sequence(s, String::from("AAB"), "0000111100001100".to_string());

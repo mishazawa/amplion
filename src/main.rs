@@ -4,7 +4,6 @@ extern crate portmidi;
 mod modules;
 mod midi;
 mod misc;
-mod ui;
 
 pub const SAMPLE_RATE: i32 = 44_100;
 // pub static SAMPLE_RATE: i32 = 22_050;
@@ -31,30 +30,15 @@ use modules::{
   panorama::{ Panorama },
 };
 
-use ui::{
-  UiThread,
-  UiMessage
-};
-
-fn on_ui_message_event (mess: UiMessage) {
-  match mess {
-    UiMessage::QUIT => {
-      std::process::exit(0);
-    }
-  }
-}
 
 fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32) {
   match mess.status {
     midi::KEY_DEPRESS => {
-      match mixer.voices.get_mut(&mess.data1) {
-        Some(voice) => {
-          if voice.enabled {
-            voice.end_time = delta_time;
-            voice.enabled = false;
-          }
-        },
-        None => println!("Midi {} is not pressed.", &mess.data1)
+      for voice in mixer.voices.iter_mut() {
+        if voice.note == mess.data1 && voice.enabled{
+          voice.end_time = delta_time;
+          voice.enabled = false;
+        }
       }
     },
 
@@ -139,16 +123,10 @@ fn main() {
 
 
   let mut timer = Timer::new();
-  let mut lfo = Lfo::new(0.03);
+  let mut lfo = Lfo::new(1.03);
 
 
   let pan = Panorama::new();
-  // ui setup
-  let ui: UiThread = UiThread::new();
-  // let cursive_sender = ui.sender().clone();
-
-  // ui thread
-  // thread::spawn(move || UiThread::run(cursive_sender));
 
   // midi thread
   let keyboard_midi_tx = midi_tx.clone();
@@ -175,11 +153,6 @@ fn main() {
 
         // calc delta time
         timer.tick();
-
-        // check ui message
-        if let Ok(mess) = ui.receiver().try_recv() {
-          on_ui_message_event(mess);
-        }
 
         // check midi message
         if let Ok(mess) = midi_rx.try_recv() {

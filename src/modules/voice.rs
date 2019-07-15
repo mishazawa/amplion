@@ -1,7 +1,4 @@
-use crate::modules::wavetable::{Osc, Waves};
-use crate::midi::{midi_to_freq};
-use crate::{sine};
-
+use crate::modules::wavetable::{Osc};
 
 #[derive(Debug)]
 pub struct Voice {
@@ -12,16 +9,4 @@ pub struct Voice {
   pub note: u8,
   pub freq: f32,
   pub osc: Osc,
-}
-
-
-pub fn use_voice (note: u8) -> Voice {
-  Voice {
-    note,
-    freq: midi_to_freq(note),
-    start_time: 0.0,
-    end_time: 0.0,
-    enabled: true,
-    osc: sine!()
-  }
 }
