@@ -83,27 +83,25 @@ fn on_midi_knob_event(mess: MidiMessage) {
   }
 }
 
+fn norm (val: f32, min: f32, max: f32, mmin: f32, mmax: f32) -> f32 {
+  (mmax - mmin) / (max-min) * (val - max ) + mmax
+}
 
 
 fn draw_fn (dest: &mut [u32], rect: &Vec<(f32,f32)>) {
   let half = HEIGHT / 2;
   let quat = half / 2;
 
-  for (index, val) in rect.iter().enumerate() {
+  for (index, (lval, rval)) in rect.iter().enumerate() {
 
-    let x = index % WIDTH;
-    let y = index / WIDTH;
-    let mut color = 0xfe0000;
-    dest[index] = color;
 
-    println!("{:?}, {:?}",x,y);
-    if let Some(val) = rect.get(index) {
+    let x = norm(index as f32, 0.0, rect.len() as f32, 0.0, WIDTH as f32)  as usize;
+    let ly = norm(*lval, -1.0, 1.0, -((half + quat) as f32), (half + quat) as f32) as usize;
+    let ry = norm(*rval, -1.0, 1.0, -((half + quat) as f32), (half + quat) as f32) as usize;
 
-      color = 0xfe0000;
-    }
-
-    dest[index] = color;
-
+    let color = 0xfe0000;
+    dest[ly * WIDTH + x] = color;
+    dest[ry * WIDTH + x] = color;
   }
 }
 
