@@ -1,5 +1,7 @@
 extern crate cpal;
 extern crate portmidi;
+extern crate minifb;
+
 
 mod modules;
 mod midi;
@@ -14,8 +16,13 @@ use portmidi::{
   PortMidi
 };
 
+use minifb::{Key, WindowOptions, Window};
+
+const WIDTH: usize = 640;
+const HEIGHT: usize = 360;
+
 // use std::clone::{ Clone };
-use std::sync::mpsc::{ self };
+use std::sync::mpsc::{ self, Receiver };
 use std::thread;
 
 use modules::{
@@ -74,6 +81,54 @@ fn on_midi_knob_event(mess: MidiMessage) {
       // println!("{:?}", mess.status);
     }
   }
+}
+
+
+
+fn draw_fn (dest: &mut [u32], rect: &Vec<(f32,f32)>) {
+  let half = HEIGHT / 2;
+  let quat = half / 2;
+
+  for (index, val) in rect.iter().enumerate() {
+
+    let x = index % WIDTH;
+    let y = index / WIDTH;
+    let mut color = 0xfe0000;
+    dest[index] = color;
+
+    println!("{:?}, {:?}",x,y);
+    if let Some(val) = rect.get(index) {
+
+      color = 0xfe0000;
+    }
+
+    dest[index] = color;
+
+  }
+}
+
+
+
+fn ui_thread (receiver: Receiver<Vec<(f32, f32)>>) {
+  let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
+
+  let mut window = Window::new("Test - ESC to exit",
+                               WIDTH,
+                               HEIGHT,
+                               WindowOptions::default()).unwrap_or_else(|e| {
+      panic!("{}", e);
+  });
+
+  while window.is_open() && !window.is_key_down(Key::Escape) {
+
+    if let Ok(data) = receiver.try_recv() {
+      draw_fn(&mut buffer, &data);
+
+      window.update_with_buffer(&buffer).unwrap();
+    }
+  }
+  ::std::process::exit(1);
+
 }
 
 fn main() {
@@ -146,6 +201,9 @@ fn main() {
   thread::spawn(move || seq.run(seq_midi_tx));
 
 
+  let (ui_tx, ui_rx) = mpsc::channel();
+  thread::spawn(move || ui_thread(ui_rx));
+
   // sound thread
   event_loop.run(move |_, data| {
     match data {
@@ -162,17 +220,20 @@ fn main() {
           seq_tx.send(mess).unwrap();
         }
 
+        let mut data_for_ui = vec![];
+
         for sample in buffer.chunks_mut(format.channels as usize) {
           let amplitude = mel.get_amp(timer.get_delta());
           let no_amplitude = noise.get_amp(timer.get_delta()) * 0.2;
 
           let [left, right] = pan.apply(amplitude + no_amplitude * lfo.get_amp());
-
-          sample[0] = left;
-          sample[1] = right;
+          data_for_ui.push((left, right));
+          // sample[0] = left;
+          // sample[1] = right;
 
         }
 
+        ui_tx.send(data_for_ui).unwrap();
         // release utilised voices (release phase envelope)
         mel.remove_unused(timer.get_delta());
       },
