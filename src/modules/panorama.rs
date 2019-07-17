@@ -10,7 +10,8 @@ impl Panorama {
     }
   }
 
-  pub fn apply (&self, amp: f32) -> [f32; 2] {
-    [(1.0 - self.balance) * amp, (1.0 + self.balance) * amp]
+  pub fn apply (&self, sample: &mut [f32], amp: f32) {
+    sample[0] = (1.0 - self.balance) * amp;
+    sample[1] = (1.0 + self.balance) * amp;
   }
 }

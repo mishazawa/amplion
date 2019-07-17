@@ -1,7 +1,5 @@
 extern crate cpal;
 extern crate portmidi;
-extern crate minifb;
-
 
 mod modules;
 mod midi;
@@ -16,13 +14,9 @@ use portmidi::{
   PortMidi
 };
 
-use minifb::{Key, WindowOptions, Window};
-
-const WIDTH: usize = 640;
-const HEIGHT: usize = 360;
 
 // use std::clone::{ Clone };
-use std::sync::mpsc::{ self, Receiver };
+use std::sync::mpsc::{ self };
 use std::thread;
 
 use modules::{
@@ -81,52 +75,6 @@ fn on_midi_knob_event(mess: MidiMessage) {
       // println!("{:?}", mess.status);
     }
   }
-}
-
-fn norm (val: f32, min: f32, max: f32, mmin: f32, mmax: f32) -> f32 {
-  (mmax - mmin) / (max-min) * (val - max ) + mmax
-}
-
-
-fn draw_fn (dest: &mut [u32], rect: &Vec<(f32,f32)>) {
-  let half = HEIGHT / 2;
-  let quat = half / 2;
-
-  for (index, (lval, rval)) in rect.iter().enumerate() {
-
-
-    let x = norm(index as f32, 0.0, rect.len() as f32, 0.0, WIDTH as f32)  as usize;
-    let ly = norm(*lval, -1.0, 1.0, -((half + quat) as f32), (half + quat) as f32) as usize;
-    let ry = norm(*rval, -1.0, 1.0, -((half + quat) as f32), (half + quat) as f32) as usize;
-
-    let color = 0xfe0000;
-    dest[ly * WIDTH + x] = color;
-    dest[ry * WIDTH + x] = color;
-  }
-}
-
-
-
-fn ui_thread (receiver: Receiver<Vec<(f32, f32)>>) {
-  let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
-
-  let mut window = Window::new("Test - ESC to exit",
-                               WIDTH,
-                               HEIGHT,
-                               WindowOptions::default()).unwrap_or_else(|e| {
-      panic!("{}", e);
-  });
-
-  while window.is_open() && !window.is_key_down(Key::Escape) {
-
-    if let Ok(data) = receiver.try_recv() {
-      draw_fn(&mut buffer, &data);
-
-      window.update_with_buffer(&buffer).unwrap();
-    }
-  }
-  ::std::process::exit(1);
-
 }
 
 fn main() {
@@ -198,10 +146,6 @@ fn main() {
   let seq_midi_tx = midi_tx.clone();
   thread::spawn(move || seq.run(seq_midi_tx));
 
-
-  let (ui_tx, ui_rx) = mpsc::channel();
-  thread::spawn(move || ui_thread(ui_rx));
-
   // sound thread
   event_loop.run(move |_, data| {
     match data {
@@ -218,20 +162,11 @@ fn main() {
           seq_tx.send(mess).unwrap();
         }
 
-        let mut data_for_ui = vec![];
-
-        for sample in buffer.chunks_mut(format.channels as usize) {
-          let amplitude = mel.get_amp(timer.get_delta());
+        buffer.chunks_mut(format.channels as usize).for_each(|sample| {
+          let amplitude = mel.get_amp(timer.get_delta()) * 0.2;
           let no_amplitude = noise.get_amp(timer.get_delta()) * 0.2;
-
-          let [left, right] = pan.apply(amplitude + no_amplitude * lfo.get_amp());
-          data_for_ui.push((left, right));
-          // sample[0] = left;
-          // sample[1] = right;
-
-        }
-
-        ui_tx.send(data_for_ui).unwrap();
+          pan.apply(sample, amplitude + no_amplitude * lfo.get_amp());
+        });
         // release utilised voices (release phase envelope)
         mel.remove_unused(timer.get_delta());
       },
