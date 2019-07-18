@@ -3,6 +3,7 @@ use portmidi::{MidiMessage, Result};
 use std::time::Duration;
 use std::sync::mpsc;
 use std::thread;
+use std::i16;
 
 use crate::modules::{
   sequencer::{Sequencer, string_to_sequence},
@@ -12,6 +13,10 @@ pub static LEDS_TOP_ROW: [u8; 9] = [96, 97, 98, 99, 100, 101, 102, 103, 104];
 pub static LEDS_BOTTOM_ROW: [u8; 9] = [112, 113, 114, 115, 116, 117, 118, 119, 120];
 
 pub static CHANNEL: u8 = 0;
+
+const WAV_AMP:f32 = i16::MAX as f32;
+
+pub static WRITE_BUFFER_LEN: usize = 100_000;
 
 pub static MELODY: [(u8, u32); 42] = [
   (60, 1), (60, 1), (67, 1), (67, 1), (69, 1), (69, 1), (67, 2),
@@ -44,7 +49,7 @@ pub fn seq_demo (s: &mut Sequencer) {
 
   s.debug = false;
 
-  s.tempo(500.0);
+  s.tempo(11.0);
 
   s.add(String::from("AAA"), 63);
   s.add(String::from("AAB"), 65);
@@ -85,4 +90,16 @@ pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> Result<()> {
     thread::sleep(Duration::from_millis(PLAY_TIME));
   }
   Ok(())
+}
+
+#[derive(Debug)]
+pub struct WriterMessage {
+  pub ended: bool,
+  pub data: Vec<f32>
+}
+
+pub fn write (writer: &mut hound::WavWriter<std::io::BufWriter<std::fs::File>>, buffer: &mut Vec<f32>) {
+    println!("Writing...");
+    buffer.iter().for_each(|sample| writer.write_sample((sample * WAV_AMP) as i16).unwrap());
+    buffer.clear();
 }

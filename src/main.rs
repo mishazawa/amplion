@@ -17,7 +17,6 @@ use portmidi::{
 use std::sync::mpsc::{ self };
 use std::thread;
 use std::path::Path;
-use std::i16;
 
 use modules::{
   mixer::Mixer,
@@ -31,13 +30,13 @@ use modules::{
   panorama::{ Panorama },
 };
 
+use misc::{
+  WriterMessage
+};
+
 use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
 
-#[derive(Debug)]
-struct WriterMessage {
-  ended: bool,
-  data: (f32, f32)
-}
+
 
 fn main() {
   // sound setup
@@ -121,11 +120,10 @@ fn main() {
   let file_path: &Path = "sine.wav".as_ref();
 
   let mut wav_writer = match file_path.is_file() {
-      true => hound::WavWriter::append(file_path).unwrap(),
-      false => hound::WavWriter::create(file_path, audio_spec).unwrap(),
+    true => hound::WavWriter::append(file_path).unwrap(),
+    false => hound::WavWriter::create(file_path, audio_spec).unwrap(),
   };
 
-  let wav_amp = i16::MAX as f32;
   // sound thread
   let (sound_tx, sound_rx) = mpsc::channel();
   thread::spawn(move || {
@@ -156,36 +154,43 @@ fn main() {
           buffer.chunks_mut(format.channels as usize).for_each(|sample| {
             let amplitude = mel.get_amp(delta) * 0.2;
             let no_amplitude = noise.get_amp(delta) * 0.2;
-            let data = pan.apply(sample, amplitude + no_amplitude * lfo.get_amp());
-            sound_tx.send(WriterMessage { ended: false, data }).unwrap();
+            pan.apply(sample, amplitude + no_amplitude * lfo.get_amp());
 
           });
+          sound_tx.send(WriterMessage { ended: false, data: buffer.to_vec() }).unwrap();
         },
         _ => (),
       }
       // release utilised voices (release phase envelope)
-      mel.remove_unused(timer.get_delta());
+      mel.remove_unused(delta);
 
       if delta >= 10_000.0 {
-        sound_tx.send(WriterMessage { ended: true, data: (0.0, 0.0)}).unwrap();
+        sound_tx.send(WriterMessage { ended: true, data: vec![]}).unwrap();
       }
     });
   });
 
+  let mut buffer: Vec<f32> = vec![];
+
   loop {
-    if let Ok(data) = sound_rx.try_recv() {
+    if let Ok(mut data) = sound_rx.try_recv() {
       if data.ended {
+        misc::write(&mut wav_writer, &mut buffer);
         println!("Stop recording...");
         wav_writer.finalize().unwrap();
         std::process::exit(0);
       }
-      let (left, right) = data.data;
-      wav_writer.write_sample((left * wav_amp) as i16).unwrap();
-      wav_writer.write_sample((right * wav_amp) as i16).unwrap();
+
+      if buffer.len() > misc::WRITE_BUFFER_LEN {
+        misc::write(&mut wav_writer, &mut buffer);
+      } else {
+        buffer.append(&mut data.data);
+      }
     }
   }
 
 }
+
 
 fn on_midi_keyboard_event (mess: MidiMessage, mixer: &mut Mixer, delta_time: f32) {
   match mess.status {
