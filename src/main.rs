@@ -76,18 +76,21 @@ fn on_midi_knob_event(mess: MidiMessage) {
     }
   }
 }
+use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
 
 fn main() {
   // sound setup
-  let device = cpal::default_output_device().expect("Failed to get default output device");
-  let format = device.default_output_format().expect("Failed to get default output format");
-  let event_loop = cpal::EventLoop::new();
-  let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
 
-  event_loop.play_stream(stream_id.clone());
+  let host = cpal::default_host();
+  let device = host.default_output_device().expect("failed to find a default output device");
+  let format = device.default_output_format().expect("failed to find a default output format");
+  let event_loop = host.event_loop();
+  let stream_id = event_loop.build_output_stream(&device, &format).expect("failed to build output stream");
+  event_loop.play_stream(stream_id.clone()).expect("failed to play stream");
+
 
   let sample_rate = format.sample_rate.0 as i32;
-  println!("{:?}", sample_rate);
+  println!("sample rate: {:?} by {:?}", sample_rate, SAMPLE_RATE);
   // midi setup
   let context = PortMidi::new().unwrap();
   let (midi_tx, midi_rx) = mpsc::channel();
@@ -147,32 +150,55 @@ fn main() {
   thread::spawn(move || seq.run(seq_midi_tx));
 
   // sound thread
-  event_loop.run(move |_, data| {
-    match data {
-      cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
-
-        // calc delta time
-        timer.tick();
-
-        // check midi message
-        if let Ok(mess) = midi_rx.try_recv() {
-          mel.on_midi_message(mess, timer.get_delta());
-          noise.on_midi_message(mess, timer.get_delta());
-          on_midi_knob_event(mess);
-          seq_tx.send(mess).unwrap();
+  let (sound_tx, sound_rx) = mpsc::channel();
+  thread::spawn(move || {
+    event_loop.run(move |id, result| {
+      let data = match result {
+        Ok(data) => data,
+        Err(err) => {
+          eprintln!("an error occurred on stream {:?}: {}", id, err);
+          return;
         }
+      };
 
-        buffer.chunks_mut(format.channels as usize).for_each(|sample| {
-          let amplitude = mel.get_amp(timer.get_delta()) * 0.2;
-          let no_amplitude = noise.get_amp(timer.get_delta()) * 0.2;
-          pan.apply(sample, amplitude + no_amplitude * lfo.get_amp());
-        });
-        // release utilised voices (release phase envelope)
-        mel.remove_unused(timer.get_delta());
-      },
-      _ => (),
-    }
+      // calc delta time
+      timer.tick();
+
+      let delta = timer.get_delta();
+
+      // check midi message
+      if let Ok(mess) = midi_rx.try_recv() {
+        mel.on_midi_message(mess, timer.get_delta());
+        noise.on_midi_message(mess, timer.get_delta());
+        on_midi_knob_event(mess);
+        seq_tx.send(mess).unwrap();
+      }
+
+      match data {
+        cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
+          buffer.chunks_mut(format.channels as usize).for_each(|sample| {
+            let amplitude = mel.get_amp(delta) * 0.2;
+            let no_amplitude = noise.get_amp(delta) * 0.2;
+            pan.apply(sample, amplitude + no_amplitude * lfo.get_amp());
+          });
+        },
+        _ => (),
+      }
+      // release utilised voices (release phase envelope)
+      mel.remove_unused(timer.get_delta());
+
+      if delta >= 10_000.0 {
+        sound_tx.send(true).unwrap();
+      }
+    });
   });
+
+  loop {
+    if let Ok(data) = sound_rx.try_recv() {
+      println!("{:?}", data);
+      std::process::exit(0);
+    }
+  }
 
 }
 

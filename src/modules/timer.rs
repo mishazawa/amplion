@@ -8,7 +8,7 @@ pub struct Timer {
 
 impl Timer {
   pub fn new () -> Self {
-    println!("u128 as f32 max:    {}", u128::max_value() as f32);
+    // println!("u128 as f32 max:    {}", u128::max_value() as f32);
     Self {
       time: SystemTime::now(),
       delta: Duration::new(0, 0)
