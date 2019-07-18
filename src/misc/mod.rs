@@ -44,7 +44,7 @@ pub fn seq_demo (s: &mut Sequencer) {
 
   s.debug = false;
 
-  s.tempo(100.0);
+  s.tempo(500.0);
 
   s.add(String::from("AAA"), 63);
   s.add(String::from("AAB"), 65);
