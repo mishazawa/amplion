@@ -41,6 +41,9 @@ pub fn midi_note (note: u8, trigger: bool) -> MidiMessage {
 }
 
 pub fn seq_demo (s: &mut Sequencer) {
+
+  s.debug = false;
+
   s.tempo(100.0);
 
   s.add(String::from("AAA"), 63);

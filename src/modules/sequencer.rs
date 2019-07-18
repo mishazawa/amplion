@@ -43,7 +43,8 @@ pub struct Sequencer {
   playing: bool,
   receiver: Receiver<MidiMessage>,
   pub sender: Sender<MidiMessage>,
-  timer: Timer
+  timer: Timer,
+  pub debug: bool,
 }
 
 impl Debug for Sequencer {
@@ -63,13 +64,14 @@ impl Sequencer {
   pub fn new () -> Self {
     let (sender, receiver) = mpsc::channel();
     Self {
+      debug: false,
       tempo: 110.0,
       tracks: HashMap::new(),
       pointer: (SEQ_LEN - 1) as u8,
       playing: true,
       receiver,
       sender,
-      timer: Timer::new()
+      timer: Timer::new(),
     }
   }
 
@@ -117,7 +119,7 @@ impl Sequencer {
 
   pub fn next_step (&mut self) {
     self.pointer = (self.pointer + 1) % SEQ_LEN as u8;
-    println!("{:?}", self);
+    if self.debug { println!("{:?}", self); }
   }
 
   pub fn set_params (&mut self, f: impl Fn(&mut Sequencer) -> ()) {
