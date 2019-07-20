@@ -29,6 +29,7 @@ use modules::{
   instrument::{ Instrument },
   lfo::{ Lfo },
   panorama::{ Panorama },
+  distortion,
 };
 
 

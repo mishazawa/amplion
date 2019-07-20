@@ -7,3 +7,4 @@ pub mod sequencer;
 pub mod instrument;
 pub mod lfo;
 pub mod panorama;
+pub mod distortion;
