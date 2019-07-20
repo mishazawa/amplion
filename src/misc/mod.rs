@@ -87,7 +87,7 @@ pub fn play(tx: mpsc::Sender<MidiMessage>, verbose: bool) -> Result<()> {
 
 
     // short pause
-    thread::sleep(Duration::from_millis(PLAY_TIME));
+    thread::sleep(Duration::from_millis(PAUSE_TIME));
   }
   Ok(())
 }

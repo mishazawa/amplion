@@ -63,11 +63,12 @@ fn main() {
     osc: vec![
       sine!(),
       triangle!(),
+      sine!(),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
       env.set_params(0.6, 0.4, 0.7, 0.5);
       env.set_amps(0.8, 0.7);
-      env.set_plucked(0.05);
+      // env.set_plucked(0.05);
       env
     }),
     on_midi_event: on_midi_keyboard_event
@@ -79,8 +80,8 @@ fn main() {
       noise!(),
     ],
     envelope: Envelope::new(|mut env: Envelope| -> Envelope {
-      env.set_params(0.6, 0.4, 0.7, 1.2);
-      env.set_amps(0.8, 0.7);
+      env.set_params(0.6, 0.4, 0.7, 0.5);
+      env.set_amps(0.7, 0.7);
       env
     }),
     on_midi_event: on_midi_keyboard_event
@@ -98,17 +99,17 @@ fn main() {
   #[allow(unreachable_code)]
   thread::spawn(move || {
 
-    // if let Err(e) = misc::play(keyboard_midi_tx, false) {
-    //   println!("{:?}", e);
-    // }
-    midi::read_midi_ports(context, keyboard_midi_tx);
+    if let Err(e) = misc::play(keyboard_midi_tx, false) {
+      println!("{:?}", e);
+    }
+    // midi::read_midi_ports(context, keyboard_midi_tx);
   });
 
   let mut seq = Sequencer::new();
   seq.set_params(misc::seq_demo);
   let seq_tx = seq.sender.clone();
   let seq_midi_tx = midi_tx.clone();
-  thread::spawn(move || seq.run(seq_midi_tx));
+  // thread::spawn(move || seq.run(seq_midi_tx));
 
 
   let audio_spec = hound::WavSpec {
@@ -153,9 +154,9 @@ fn main() {
       match data {
         cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
           buffer.chunks_mut(format.channels as usize).for_each(|sample| {
-            let amplitude = mel.get_amp(delta) * 0.2;
-            let no_amplitude = noise.get_amp(delta) * 0.2;
-            pan.apply(sample, amplitude + no_amplitude * lfo.get_amp());
+            let amplitude = mel.get_amp(delta);
+            // let no_amplitude = noise.get_amp(delta) * 0.2;
+            pan.apply(sample, distortion::blend(amplitude, distortion::bit_crush(amplitude, 3), 90));
 
           });
           sound_tx.send(WriterMessage { ended: false, data: buffer.to_vec() }).unwrap();
