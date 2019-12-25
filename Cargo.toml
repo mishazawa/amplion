@@ -5,7 +5,10 @@ authors = ["mishazawa <macintoshkrug@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-cpal = "0.10.0"
-rand = "0.6.5"
-portmidi = "^0.2"
-hound = "3.4.0"
+cpal = "0.11.0"
+
+
+[workspace]
+members = [
+    "utils"
+]

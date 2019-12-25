@@ -2,3 +2,5 @@
 **/*.rs.bk
 sine.wav
 cover.png
+src_/
+data/
