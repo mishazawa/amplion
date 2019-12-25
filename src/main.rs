@@ -2,8 +2,10 @@ extern crate cpal;
 
 use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
 
+mod synth;
 mod utils;
-use crate::utils::read_file;
+
+use crate::synth::osc::Oscillator;
 
 pub const SAMPLE_RATE: i32 = 44_100;
 
@@ -23,14 +25,12 @@ fn main() -> () {
         .play_stream(stream_id.clone())
         .expect("failed to play_stream");
 
-    let sample_rate = format.sample_rate.0 as f32;
-    let sq = read_file("sine".to_string());
-    let mut sample_clock = 0f32;
+    let mut sine = sine!();
     let freq = 440.;
     // Produce a sinusoid of maximum amplitude.
     let mut next_value = || {
-        sample_clock = (sample_clock + freq) % SAMPLE_RATE as f32;
-        sq.get(sample_clock as usize).unwrap()
+        sine.next_phase(freq);
+        sine.get_sample()
     };
 
     event_loop.run(move |id, result| {
@@ -69,7 +69,7 @@ fn main() -> () {
                 for sample in buffer.chunks_mut(format.channels as usize) {
                     let value = next_value();
                     for out in sample.iter_mut() {
-                        *out = *value;
+                        *out = value;
                     }
                 }
             }
