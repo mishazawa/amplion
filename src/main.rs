@@ -6,7 +6,8 @@ mod synth;
 mod utils;
 
 use crate::synth::osc::Oscillator;
-use crate::synth::mixer;
+use crate::synth::voice::Voice;
+
 
 pub const SAMPLE_RATE: i32 = 44_100;
 
@@ -26,36 +27,22 @@ fn main() -> () {
         .play_stream(stream_id.clone())
         .expect("failed to play_stream");
 
-    let mut sine = sine!();
-    let mut sine1 = sine!();
-    let mut sine2 = sine!();
-    let mut sine3 = sine!();
-    let mut sine4 = sine!();
-    let mut sine5 = sine!();
 
-    let freq = 440.;
-    let freq1 = 3450.;
-    let freq2 = 140.;
-    let freq3 = 40.;
-    let freq4 = 4540.;
-    let freq5 = 1440.;
+
+
+    let mut v = Voice::new(vec![
+        sine!(),
+        square!(),
+        sine!(),
+        square!(),
+
+        ], |mut env| {
+            env.set_params(5., 4., -1., 15.);
+            env
+        });
+
+    v.play_note(20.);
     // Produce a sinusoid of maximum amplitude.
-    let mut next_value = || {
-        sine.next_phase(freq);
-        sine1.next_phase(freq1);
-        sine2.next_phase(freq2);
-        sine3.next_phase(freq3);
-        sine4.next_phase(freq4);
-        sine5.next_phase(freq5);
-        mixer::mix(vec![
-            sine.get_sample(),
-            sine1.get_sample(),
-            sine2.get_sample(),
-            sine3.get_sample(),
-            sine4.get_sample(),
-            sine5.get_sample()
-            ])
-    };
 
     event_loop.run(move |id, result| {
         let data = match result {
@@ -71,7 +58,7 @@ fn main() -> () {
                 buffer: cpal::UnknownTypeOutputBuffer::U16(mut buffer),
             } => {
                 for sample in buffer.chunks_mut(format.channels as usize) {
-                    let value = ((next_value() * 0.5 + 0.5) * std::u16::MAX as f32) as u16;
+                    let value = ((v.get_sample() * 0.5 + 0.5) * std::u16::MAX as f32) as u16;
                     for out in sample.iter_mut() {
                         *out = value;
                     }
@@ -81,7 +68,7 @@ fn main() -> () {
                 buffer: cpal::UnknownTypeOutputBuffer::I16(mut buffer),
             } => {
                 for sample in buffer.chunks_mut(format.channels as usize) {
-                    let value = (next_value() * std::i16::MAX as f32) as i16;
+                    let value = (v.get_sample() * std::i16::MAX as f32) as i16;
                     for out in sample.iter_mut() {
                         *out = value;
                     }
@@ -91,8 +78,7 @@ fn main() -> () {
                 buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer),
             } => {
                 for sample in buffer.chunks_mut(format.channels as usize) {
-                    let value = next_value();
-                    println!("{:?}", value);
+                    let value = v.get_sample();
                     for out in sample.iter_mut() {
                         *out = value;
                     }
@@ -100,5 +86,8 @@ fn main() -> () {
             }
             _ => (),
         }
+        v.stop_note();
+        v.play_note(10000.);
+
     });
 }

@@ -5,22 +5,31 @@ use crate::SAMPLE_RATE;
 pub struct Oscillator {
     table: Wavetable,
     phase: f32,
+    freq: f32,
 }
 
 impl Oscillator {
     pub fn new(name: &str) -> Self {
-        Oscillator {
+        Self {
+            freq: 0.,
             phase: 0.,
             table: Wavetable::load(name),
         }
     }
-
-    pub fn next_phase(&mut self, freq: f32) -> () {
-        self.phase = (self.phase + freq) % SAMPLE_RATE as f32;
+    pub fn next_phase(&mut self) -> () {
+        self.phase = (self.phase + self.freq) % SAMPLE_RATE as f32;
     }
 
     pub fn get_sample(&self) -> f32 {
         *self.table.get(self.phase as usize).unwrap()
+    }
+
+    pub fn set_freq (&mut self, freq: f32) -> () {
+        self.freq = freq;
+    }
+
+    pub fn set_harmonic_offset (&mut self, freq: f32, n: usize) -> () {
+        self.set_freq(freq * (n + 1) as f32);
     }
 }
 
