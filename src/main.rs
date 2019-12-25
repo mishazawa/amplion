@@ -6,6 +6,7 @@ mod synth;
 mod utils;
 
 use crate::synth::osc::Oscillator;
+use crate::synth::mixer;
 
 pub const SAMPLE_RATE: i32 = 44_100;
 
@@ -26,11 +27,34 @@ fn main() -> () {
         .expect("failed to play_stream");
 
     let mut sine = sine!();
+    let mut sine1 = sine!();
+    let mut sine2 = sine!();
+    let mut sine3 = sine!();
+    let mut sine4 = sine!();
+    let mut sine5 = sine!();
+
     let freq = 440.;
+    let freq1 = 3450.;
+    let freq2 = 140.;
+    let freq3 = 40.;
+    let freq4 = 4540.;
+    let freq5 = 1440.;
     // Produce a sinusoid of maximum amplitude.
     let mut next_value = || {
         sine.next_phase(freq);
-        sine.get_sample()
+        sine1.next_phase(freq1);
+        sine2.next_phase(freq2);
+        sine3.next_phase(freq3);
+        sine4.next_phase(freq4);
+        sine5.next_phase(freq5);
+        mixer::mix(vec![
+            sine.get_sample(),
+            sine1.get_sample(),
+            sine2.get_sample(),
+            sine3.get_sample(),
+            sine4.get_sample(),
+            sine5.get_sample()
+            ])
     };
 
     event_loop.run(move |id, result| {
@@ -68,6 +92,7 @@ fn main() -> () {
             } => {
                 for sample in buffer.chunks_mut(format.channels as usize) {
                     let value = next_value();
+                    println!("{:?}", value);
                     for out in sample.iter_mut() {
                         *out = value;
                     }
