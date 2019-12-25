@@ -1,5 +1,8 @@
 extern crate cpal;
 
+#[macro_use]
+extern crate lazy_static;
+
 use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
 
 mod synth;
@@ -7,9 +10,13 @@ mod utils;
 
 use crate::synth::osc::Oscillator;
 use crate::synth::voice::Voice;
-
+use crate::synth::wavetable::{preload, SINE, SQUARE};
 
 pub const SAMPLE_RATE: i32 = 44_100;
+lazy_static! {
+    pub static ref SINEWAVETABLE: Vec<f32> = preload(SINE);
+    pub static ref SQUAREWAVETABLE: Vec<f32> = preload(SQUARE);
+}
 
 fn main() -> () {
     let host = cpal::default_host();
@@ -27,23 +34,14 @@ fn main() -> () {
         .play_stream(stream_id.clone())
         .expect("failed to play_stream");
 
+    let mut v = Voice::new(vec![sine!(), square!(), sine!(), square!()], |mut env| {
+        env.set_params(1., 1., 0., 3.);
+        env
+    });
 
-
-
-    let mut v = Voice::new(vec![
-        sine!(),
-        square!(),
-        sine!(),
-        square!(),
-
-        ], |mut env| {
-            env.set_params(5., 4., -1., 15.);
-            env
-        });
-
-    v.play_note(20.);
     // Produce a sinusoid of maximum amplitude.
 
+    v.play_note(20.);
     event_loop.run(move |id, result| {
         let data = match result {
             Ok(data) => data,
@@ -86,8 +84,7 @@ fn main() -> () {
             }
             _ => (),
         }
-        v.stop_note();
-        v.play_note(10000.);
-
+        // v.stop_note();
+        // v.play_note(10000.);
     });
 }

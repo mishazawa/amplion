@@ -3,13 +3,13 @@ use crate::SAMPLE_RATE;
 
 #[derive(Debug)]
 pub struct Oscillator {
-    table: Wavetable,
+    table: &'static Wavetable,
     phase: f32,
     freq: f32,
 }
 
 impl Oscillator {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &'static str) -> Self {
         Self {
             freq: 0.,
             phase: 0.,
@@ -24,11 +24,11 @@ impl Oscillator {
         *self.table.get(self.phase as usize).unwrap()
     }
 
-    pub fn set_freq (&mut self, freq: f32) -> () {
+    pub fn set_freq(&mut self, freq: f32) -> () {
         self.freq = freq;
     }
 
-    pub fn set_harmonic_offset (&mut self, freq: f32, n: usize) -> () {
+    pub fn set_harmonic_offset(&mut self, freq: f32, n: usize) -> () {
         self.set_freq(freq * (n + 1) as f32);
     }
 }
