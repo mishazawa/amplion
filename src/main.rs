@@ -11,6 +11,7 @@ mod utils;
 use crate::synth::osc::Oscillator;
 use crate::synth::voice::Voice;
 use crate::synth::wavetable::{preload, SINE, SQUARE};
+use crate::synth::panorama::Pan;
 
 pub const SAMPLE_RATE: i32 = 44_100;
 lazy_static! {
@@ -33,6 +34,9 @@ fn main() -> () {
     event_loop
         .play_stream(stream_id.clone())
         .expect("failed to play_stream");
+    let mut pan = Pan::new();
+
+    pan.set(0.8);
 
     let mut v = Voice::new(vec![sine!(), square!(), sine!(), square!()], |mut env| {
         env.set_params(1., 1., 0., 3.);
@@ -76,10 +80,7 @@ fn main() -> () {
                 buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer),
             } => {
                 for sample in buffer.chunks_mut(format.channels as usize) {
-                    let value = v.get_sample();
-                    for out in sample.iter_mut() {
-                        *out = value;
-                    }
+                    pan.apply(sample, v.get_sample());
                 }
             }
             _ => (),
