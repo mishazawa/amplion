@@ -3,15 +3,19 @@ extern crate cpal;
 #[macro_use]
 extern crate lazy_static;
 
+extern crate gui;
+
 use cpal::traits::{DeviceTrait, EventLoopTrait, HostTrait};
+use std::sync::mpsc;
+use std::thread;
 
 mod synth;
 mod utils;
 
 use crate::synth::osc::Oscillator;
+use crate::synth::panorama::Pan;
 use crate::synth::voice::Voice;
 use crate::synth::wavetable::{preload, SINE, SQUARE};
-use crate::synth::panorama::Pan;
 
 pub const SAMPLE_RATE: i32 = 44_100;
 lazy_static! {
@@ -43,10 +47,40 @@ fn main() -> () {
         env
     });
 
-    // Produce a sinusoid of maximum amplitude.
+    let (tx, rx) = mpsc::channel();
+    // gui thread
+    thread::spawn(move || {
+        gui::main(tx);
+    });
 
-    v.play_note(20.);
+    // v.play_note(20.);
     event_loop.run(move |id, result| {
+        match rx.try_recv() {
+            Ok(data) => {
+                match data.cmd.as_ref() {
+                    "init" => {},
+                    "module"=> {
+                        match data.r#type.as_ref() {
+                            "freq" => {},
+                            "osc" => {},
+                            "out" => {},
+                            "remove" => {},
+                            _ => {}
+                        }
+                    },
+                    "wire" => {
+                        match data.r#type.as_ref() {
+                            "connect" => {},
+                            "disconnect" => {},
+                            _ => {}
+                        }
+                    },
+                    _ => {}
+                }
+            }
+            Err(_) => {}
+        }
+
         let data = match result {
             Ok(data) => data,
             Err(err) => {

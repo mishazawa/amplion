@@ -23,8 +23,8 @@ code {
 
 .box {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 50px;
+  height: 50px;
   border: 1px solid black;
 }
 
@@ -39,14 +39,45 @@ code {
 
 .box > .content {
   width: 100%;
-  height: 100%;
+  height: 50%;
   background: rgba(0, 0, 0, .1);
   position: absolute;
-  top: 0;
+  bottom: 0;
   z-index: 1;
-  pointer-events: none;
+  -webkit-touch-callout: text;
+    -webkit-user-select: text;
+     -khtml-user-select: text;
+       -moz-user-select: text;
+        -ms-user-select: text;
+            user-select: text;
 }
 
+.box > .content.bold {
+  font-weight: bold;
+
+}
+.box > .content.valid {
+  background: white;
+  pointer-events: none;
+  -webkit-touch-callout: none;
+    -webkit-user-select: none;
+     -khtml-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+}
+
+.box > .remove {
+  width: 10px;
+  height: 10px;
+  padding: 0px;
+  background: red;
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  border: none;
+}
 .workspace {
   width: 100%;
   height: 100vh;

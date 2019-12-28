@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 cpal = "0.11.0"
 lazy_static = "1.4.0"
+gui = { path = "gui" }
 
 [workspace]
 members = [
