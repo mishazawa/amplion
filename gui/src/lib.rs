@@ -26,9 +26,8 @@ pub struct GuiMessage {
     pub cmd: String,
     pub r#type: String,
     pub value: String,
-    pub id: String
+    pub id: String,
 }
-
 
 pub fn parser(arg: String) -> GuiMessage {
     serde_json::from_str(&arg).unwrap()
