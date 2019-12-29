@@ -6,7 +6,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
 
-use crate::processing::ProcMessage;
+use crate::processing::ModuleMessage;
 use crate::synth::wavetable::{preload, SINE, SQUARE};
 use crate::utils::audio;
 
@@ -25,32 +25,50 @@ fn main() -> () {
     let (gui_tx, gui_rx) = mpsc::channel();
     let (audio_tx, audio_rx) = mpsc::channel();
     let (processing_tx, processing_rx) = mpsc::channel();
+    let (request_audio_tx, request_audio_rx) = mpsc::channel();
 
     let gui_join = thread::spawn(move || gui::main(gui_tx));
-    let audio_join = thread::spawn(move || audio::main(audio_rx));
-    let processing_join = thread::spawn(move || processing::main(audio_tx, processing_rx));
+    let audio_join = thread::spawn(move || audio::main(audio_rx, request_audio_tx));
+    let processing_join = thread::spawn(move || processing::main(audio_tx, processing_rx, request_audio_rx));
 
     loop {
         match gui_rx.try_recv() {
             Ok(data) => match data.cmd.as_ref() {
                 "init" => {}
                 "exit" => {
+                    processing_tx
+                        .send(ModuleMessage {
+                            kind: "exit".to_string(),
+                            value: data.r#type,
+                            id: None,
+                            from: None,
+                            to: None,
+                        })
+                        .unwrap();
                     break;
                 }
-                "module" => match data.r#type.as_ref() {
-                    "freq" => {}
-                    "osc" => {
-                        processing_tx.send(ProcMessage::osc(data.id, data.r#type));
-                    }
-                    "out" => {}
-                    "remove" => {}
-                    _ => {}
-                },
-                "wire" => match data.r#type.as_ref() {
-                    "connect" => {}
-                    "disconnect" => {}
-                    _ => {}
-                },
+                "module" => {
+                    processing_tx
+                        .send(ModuleMessage {
+                            kind: data.r#type,
+                            value: data.value,
+                            id: Some(data.id),
+                            from: None,
+                            to: None,
+                        })
+                        .unwrap();
+                }
+                "wire" => {
+                    processing_tx
+                        .send(ModuleMessage {
+                            kind: "wire".to_string(),
+                            value: data.r#type,
+                            id: None,
+                            from: Some(data.value),
+                            to: Some(data.id),
+                        })
+                        .unwrap();
+                }
                 _ => {}
             },
             Err(_) => {}

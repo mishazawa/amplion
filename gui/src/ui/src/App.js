@@ -170,7 +170,7 @@ class App extends React.Component {
         Native.addOut(val.id);
         break;
       default:
-        Native.addFreq(val.id, parseFloat(val.module));
+        Native.addFreq(val.id, val.module);
     }
   }
 
